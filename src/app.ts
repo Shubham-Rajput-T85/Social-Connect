@@ -2,7 +2,6 @@ import { ErrorRequestHandler, RequestHandler } from "express";
 import express from "express";
 import bodyParser from "body-parser";
 import mongoose from "mongoose";
-import User from "./models/user";
 
 require("dotenv").config();
 const app = express();
