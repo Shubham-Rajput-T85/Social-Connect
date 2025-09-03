@@ -1,6 +1,7 @@
 import {Types, Document} from "mongoose";
 
 export default interface IUser extends Document {
+    _id: Types.ObjectId;
     name: string;
     username: string;
     email: string; // Reference to User
