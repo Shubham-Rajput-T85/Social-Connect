@@ -16,10 +16,10 @@ export const setCookie = (
 ) => {
     res.cookie(name, value, {
         httpOnly: options.httpOnly ?? true,
-        secure: options.secure ?? process.env.NODE_ENV === "production",
-        sameSite: options.sameSite ?? "strict",
-        maxAge: options.maxAge ?? 60 * 60 * 1000, // 1h default
-        path: options.path ?? "/",
+        secure: false,
+        // sameSite: options.sameSite ?? "strict",
+        // maxAge: options.maxAge ?? 60 * 60 * 1000, // 1h default
+        // path: options.path ?? "/",
     });
 };
 

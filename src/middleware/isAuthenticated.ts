@@ -2,31 +2,29 @@ import { RequestHandler } from "express";
 import { AppError } from "../utils/errorUtils";
 import { verifyToken } from "../utils/jwtUtils";
 
-const isAuthenticated: RequestHandler =  (req, res, next) => {
-    const authHeader = req.get('Authorization');
-    if (!authHeader) {
-        const error = new AppError("Not authenticated.");
-        error.statusCode = 401;
-        throw error; 
-    }
+const isAuthenticated: RequestHandler = (req, res, next) => {
+  // ✅ Read JWT from HttpOnly cookie
+  const token = req.cookies?.jwt;
 
-    const token = authHeader.split(' ')[1];
-    let decodedToken;
-    try{
-        decodedToken = verifyToken(token);
-    }
-    catch(err){
-        // err.statusCode = 500;
-        // throw err;
-        next(err);
-    }
+  if (!token) {
+    const error = new AppError("Not authenticated.");
+    error.statusCode = 401;
+    return next(error);
+  }
 
-    if (!decodedToken) {
-        const error = new AppError("Not authenticated.");
-        error.statusCode = 401;
-        next(error);
-    }
-    next();
-}
+  try {
+    const decodedToken = verifyToken(token);
+
+    // Attach user info to request for later use
+    (req as any).user = decodedToken;
+
+    return next();
+  } catch (err) {
+    console.error("JWT verification failed:", err);
+    const error = new AppError("Invalid or expired token.");
+    error.statusCode = 401;
+    return next(error);
+  }
+};
 
 export default isAuthenticated;

@@ -4,6 +4,8 @@ import { AppError } from "../utils/errorUtils";
 import * as authService from "../services/authService";
 import { loginDTO } from "../dtos/auth/loginDTO";
 import { signupDTO } from "../dtos/auth/signupDTO";
+import { verifyToken } from "../utils/jwtUtils";
+import User from "../models/user";
 
 export const signup: RequestHandler = async (req, res, next) => {
     try{
@@ -68,3 +70,24 @@ export const login: RequestHandler = async (req, res, next) => {
         next(err);
     }
 }
+
+export const getMe: RequestHandler = async (req, res, next) => {
+    try {
+      const token = req.cookies.jwt; // read from HttpOnly cookie
+  
+      if (!token) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+  
+      const decoded:any = verifyToken(token); // decode JWT
+  
+      const user = await User.findById(decoded.userId).select("-password");
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+  
+      res.json({ user });
+    } catch (error) {
+      return res.status(401).json({ message: "Invalid or expired token" });
+    }
+  };
