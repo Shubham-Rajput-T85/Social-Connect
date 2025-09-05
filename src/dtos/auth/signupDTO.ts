@@ -4,5 +4,6 @@ export interface signupDTO {
     email: string,
     username: string,
     password: string,
-    bio: string    
+    bio: string,
+    profileUrl: string    
 }

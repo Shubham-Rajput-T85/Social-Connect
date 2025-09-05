@@ -16,17 +16,14 @@ const postSchema = new Schema<IPost>({
     media: {
         url: { type: String },
         type: { type: String, enum: ["image", "video"] },
-        required: false,
     },
     likeCount: {
         type: Number,
         default: 0,
-        required: false,
     },
     commentsCount: {
         type: Number,
         default: 0,
-        required: false,
     }
 }, {timestamps: true});
 
