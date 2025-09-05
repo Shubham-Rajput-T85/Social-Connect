@@ -4,16 +4,16 @@ import { comparePassword, hashPassword } from "../utils/passwordUtils";
 import User from "../models/user";
 import { signupDTO } from "../dtos/auth/signupDTO";
 import { loginDTO } from "../dtos/auth/loginDTO";
-import { generateToken } from "../utils/jwtUtils";
+import { generateToken, verifyToken } from "../utils/jwtUtils";
 import { setCookie } from "../utils/cookieUtils";
 
 export const signup = async (signupObj: signupDTO) => {
-
     const name = signupObj.name;
     const email = signupObj.email;
     const username = signupObj.username;
     const password = signupObj.password;
     const bio = signupObj.bio;
+    const profileUrl = signupObj.profileUrl;
     const hashedPassword = await hashPassword(password);
 
     const user = new User({
@@ -22,6 +22,7 @@ export const signup = async (signupObj: signupDTO) => {
         username: username,
         hashPassword: hashedPassword,
         bio: bio,
+        profileUrl: profileUrl,
     });
 
     const response = await user.save();
@@ -63,5 +64,10 @@ export const login = async (res:Response, loginObj: loginDTO) => {
     }
 
     return response;
+}
 
+export const getMe = async (token: string) => {
+    const decoded:any = verifyToken(token); // decode JWT
+    const user = await User.findById(decoded.userId).select("-password");
+    return user;
 }

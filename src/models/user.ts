@@ -26,6 +26,10 @@ const userSchema = new Schema<IUser>({
         type: String,
         required: false
     },
+    profileUrl: {
+        type: String,
+        required: false
+    },
     postCount: {
         type: Number,
         required: false,
