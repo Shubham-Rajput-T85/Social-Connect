@@ -1,4 +1,4 @@
-import { addPostDTO } from "../dtos/addPostDTO";
+import { addPostDTO } from "../dtos/post/addPostDTO";
 import Post from "../models/post";
 import { AppError } from "../utils/errorUtils";
 import { getMediaTypeFromUrl } from "../utils/mediaUtils";

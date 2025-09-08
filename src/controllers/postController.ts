@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { addPostDTO } from "../dtos/addPostDTO";
+import { addPostDTO } from "../dtos/post/addPostDTO";
 import * as postService from "../services/postService";
 
 export const addPost: RequestHandler = async (req, res, next) => {

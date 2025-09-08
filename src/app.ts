@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import { errorHandler } from "./middleware/errorHandler";
 import authRoutes from "./routes/auth";
 import postRoutes from "./routes/post";
+import userRoutes from "./routes/user";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import multer from "multer";
@@ -46,6 +47,7 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 // ROUTES
 app.use('/auth', authRoutes);
 app.use('/posts', postRoutes);
+app.use('/user', userRoutes);
 
 // app.use("/",(async (req, res, next) => {
 //     res.send(`<h1>hello server </h1>`);
