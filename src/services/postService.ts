@@ -29,3 +29,18 @@ export const addPost = async (postData: addPostDTO) => {
 
     return response;
 }
+
+/**
+ * Get all posts for a specific user
+ */
+export const getPostsByUser = async (userId: string) => {
+    const result = await Post.find({ userId }).sort({ createdAt: -1 }).populate("userId", "username email");
+    return result;
+}
+
+/**
+ * Delete post by ID
+ */
+export const deletePost = async (postId: string) => {
+    return await Post.findByIdAndDelete(postId);
+}

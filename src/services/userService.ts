@@ -1,8 +1,8 @@
 import { userDetailDTO } from "../dtos/user/userDetailDTO";
 import User from "../models/user"
 
-export const findUserById = (userId: string) => {
-    const user = User.findOne({ id: userId });
+export const findUserById = async (userId: string) => {
+    const user = await User.findOne({ _id: userId }).select("_id name username bio profileUrl email");
     return user;
 }
 
@@ -23,6 +23,7 @@ export const updateUserDetails = async (userDetail: userDetailDTO) => {
     }
     console.log(updateFields);
     console.log(userDetail.id);
+    console.log("userdetaisl:", userDetail);
     
     const update = {
         $set: updateFields
@@ -32,11 +33,11 @@ export const updateUserDetails = async (userDetail: userDetailDTO) => {
     if (!result) {
         return { success: false, message: "failed to update user details" };
     }
-    return { success: true };
+    return { success: true, user: await findUserById(userDetail.id) };
 }
 
 export const deleteUser = async (userId: string) => {
-    const result = User.deleteOne({ id: userId });
+    const result = await User.deleteOne({ id: userId });
     console.log(result);
     if (!result) {
         return { success: false, message: "failed to update user details" };
