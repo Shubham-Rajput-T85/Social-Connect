@@ -14,5 +14,7 @@ const postMediaUpload = createUpload((req) => {
 
 router.post('/addPost', postMediaUpload.single("media"), postController.addPost);
 
+router.get('/getPosts', postController.getPostByUserId);
+
 
 export default router;

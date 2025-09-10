@@ -1,4 +1,4 @@
-import { addPostDTO } from "../dtos/addPostDTO";
+import { addPostDTO } from "../dtos/post/addPostDTO";
 import Post from "../models/post";
 import { AppError } from "../utils/errorUtils";
 import { getMediaTypeFromUrl } from "../utils/mediaUtils";
@@ -28,4 +28,19 @@ export const addPost = async (postData: addPostDTO) => {
     console.log("response: ", response);
 
     return response;
+}
+
+/**
+ * Get all posts for a specific user
+ */
+export const getPostsByUser = async (userId: string) => {
+    const result = await Post.find({ userId }).sort({ createdAt: -1 }).populate("userId", "username email");
+    return result;
+}
+
+/**
+ * Delete post by ID
+ */
+export const deletePost = async (postId: string) => {
+    return await Post.findByIdAndDelete(postId);
 }

@@ -32,20 +32,20 @@ export const signup = async (signupObj: signupDTO) => {
 }
 
 export const login = async (res:Response, loginObj: loginDTO) => {
-    const user = await User.findOne({
+    const userObj = await User.findOne({
         $or: [
           { email: loginObj.usernameOrEmail },
           { username: loginObj.usernameOrEmail }
         ]
-      });
+      }).select("_id name username bio profileUrl email hashPassword");
 
-    if (!user) {
+    if (!userObj) {
         const error = new AppError("user doesnt exist");
         error.statusCode = 401;
         throw error;
     }
 
-    const isEqual = await comparePassword(loginObj.password, user.hashPassword);
+    const isEqual = await comparePassword(loginObj.password, userObj.hashPassword);
 
     if (!isEqual) {
         const error = new AppError("password is not correct!");
@@ -53,21 +53,25 @@ export const login = async (res:Response, loginObj: loginDTO) => {
         throw error;
     }
 
-    const token = generateToken(user);
+    const token = generateToken(userObj);
 
     setCookie(res,"jwt",token);
 
-    const response = {
-        token: token,
-        userId: user._id.toString(),
-        user: user
-    }
 
-    return response;
+  // Convert to plain object so we can safely modify it
+  const userResponse: any = userObj.toObject();
+
+  // Remove hashPassword before sending response
+  if ('hashPassword' in userResponse) {
+    delete userResponse.hashPassword;
+  }
+
+  return { user: userResponse };
+
 }
 
 export const getMe = async (token: string) => {
     const decoded:any = verifyToken(token); // decode JWT
-    const user = await User.findById(decoded.userId).select("-password");
-    return user;
+    const user = await User.findById(decoded.userId).select("_id name username bio profileUrl email");
+    return user;  
 }
