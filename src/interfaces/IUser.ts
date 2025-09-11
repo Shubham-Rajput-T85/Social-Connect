@@ -21,5 +21,5 @@ export default interface IUser extends Document {
   
     createdAt?: Date;
     updatedAt?: Date;
-    
+    isPrivate: boolean;
 }
