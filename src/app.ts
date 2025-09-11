@@ -14,9 +14,7 @@ import userRoutes from "./routes/user";
 
 dotenv.config();
 
-
 const app = express();
-const PORT = parseInt(process.env.PORT ?? "8080");
 const PORT = parseInt(process.env.PORT ?? "8080");
 const MONGO_URI = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0.blbzir6.mongodb.net/${process.env.DEFAULT_DB}?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -30,13 +28,7 @@ app.use(cors({
   origin: "http://localhost:3000", // Frontend URL
   credentials: true,
 }));
-  origin: "http://localhost:3000", // Frontend URL
-  credentials: true,
-}));
 
-// ----------------------------
-// Serve Uploaded Images
-// ----------------------------
 // ----------------------------
 // Serve Uploaded Images
 // ----------------------------
@@ -52,32 +44,12 @@ app.use("/user", userRoutes);
 // ----------------------------
 // Error Handler
 // ----------------------------
-// ----------------------------
-// Routes
-// ----------------------------
-app.use("/auth", authRoutes);
-app.use("/posts", postRoutes);
-app.use("/user", userRoutes);
-
-// ----------------------------
-// Error Handler
-// ----------------------------
 app.use(errorHandler);
 
 // ----------------------------
 // Start Server
 // ----------------------------
-// ----------------------------
-// Start Server
-// ----------------------------
 mongoose.connect(MONGO_URI)
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server running at http://localhost:${PORT}`);
-    });
-  })
-  .catch(err => console.error("MongoDB connection error:", err));
-
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Server running at http://localhost:${PORT}`);
