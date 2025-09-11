@@ -61,6 +61,10 @@ const userSchema = new Schema<IUser>({
         type: Number,
         default: 0,
         required: false
+    },
+    isPrivate: {
+       type: Boolean,
+       default: true 
     }
 }, {timestamps: true});
 
