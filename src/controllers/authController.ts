@@ -2,6 +2,7 @@ import { RequestHandler } from "express";
 import * as authService from "../services/authService";
 import { loginDTO } from "../dtos/auth/loginDTO";
 import { signupDTO } from "../dtos/auth/signupDTO";
+import { clearCookie } from "../utils/cookieUtils";
 
 export const signup: RequestHandler = async (req, res, next) => {
   try {
@@ -58,6 +59,13 @@ export const login: RequestHandler = async (req, res, next) => {
     console.error(err);
     next(err);
   }
+}
+
+export const logout: RequestHandler = async (req, res, next) => {
+  // clear http only cookie
+  clearCookie(res, "jwt");
+
+  return res.status(200).json({ success: true, message: "Logout successfully" });
 }
 
 export const getMe: RequestHandler = async (req, res, next) => {

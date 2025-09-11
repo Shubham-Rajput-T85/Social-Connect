@@ -37,10 +37,38 @@ export const updateUserDetails = async (userDetail: userDetailDTO) => {
 }
 
 export const deleteUser = async (userId: string) => {
-    const result = await User.deleteOne({ id: userId });
+    const result = await User.deleteOne({ _id: userId });
     console.log(result);
     if (!result) {
         return { success: false, message: "failed to update user details" };
     }
     return { success: true };
 }
+
+export const searchUsers = async (searchQuery: string, currentUserId: string) => {
+  // Trim query for better UX
+  const trimmedQuery = searchQuery.trim();
+
+  if (!trimmedQuery) {
+    return [];
+  }
+
+  // Validate currentUserId
+  if (!currentUserId) {
+    throw new Error("Invalid current user ID");
+  }
+
+  // Search only users whose username, name, or email starts with the searchQuery
+  const users = await User.find({
+    _id: { $ne: currentUserId }, // exclude the current user
+    $or: [
+      { username: { $regex: `^${trimmedQuery}`, $options: "i" } },
+      { name: { $regex: `^${trimmedQuery}`, $options: "i" } },
+      { email: { $regex: `^${trimmedQuery}`, $options: "i" } },
+    ],
+  })
+    .select("_id name username email profileUrl") // only return required fields
+    .limit(20); // limit results for performance
+
+  return users;
+};

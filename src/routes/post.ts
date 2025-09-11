@@ -1,20 +1,15 @@
 import { Router } from "express";
 import * as postController from "../controllers/postController";
-// import { upload } from "../middleware/upload";
 import { validate } from "../middleware/inputValidation";
-import { createUpload } from "../middleware/upload";
+import { upload } from "../middleware/upload";
+import isAuthenticated from "../middleware/isAuthenticated";
 
 const router = Router();
 
-// Dynamic upload for post media
-const postMediaUpload = createUpload((req) => {
-    const userId = req.body.userId?.trim();
-    return userId ? `${userId}_post` : "";
-  });
+router.post('/addPost', isAuthenticated, upload.single("media"), postController.addPost);
 
-router.post('/addPost', postMediaUpload.single("media"), postController.addPost);
+router.get('/getPosts', isAuthenticated, postController.getPostByUserId);
 
-router.get('/getPosts', postController.getPostByUserId);
-
+router.delete("/delete", isAuthenticated, postController.deletePost);
 
 export default router;
