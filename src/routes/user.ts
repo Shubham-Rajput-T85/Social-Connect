@@ -3,6 +3,7 @@ import { upload } from "../middleware/upload";
 import * as userValidator from "../validators/userValidator";
 import { validate } from "../middleware/inputValidation";
 import * as userController from "../controllers/userController";
+import * as followController from "../controllers/followController";
 import isAuthenticated from "../middleware/isAuthenticated";
 
 const router = Router();
@@ -14,24 +15,28 @@ router.put("/updateUserProfile", isAuthenticated, upload.single("profilePic"), u
 router.delete("/delete", isAuthenticated, userController.deleteUser);
 
 // get user by search parameter
-router.get("/getUsers", isAuthenticated, userController.searchUsersController);
+router.get("/getUsers", isAuthenticated, userController.searchUsers);
 
 
 // User Follow related Routes
 
 // Get follow state
-router.get("/state", isAuthenticated, userController.getFollowStateController);
+router.get("/followState", isAuthenticated, followController.getFollowState);
 
 // Follow a user
-router.post("/follow", isAuthenticated, userController.followUserController);
+router.post("/follow", isAuthenticated, followController.followUser);
 
 // Unfollow a user
-router.post("/unfollow", isAuthenticated, userController.unfollowUserController);
+router.post("/unfollow", isAuthenticated, followController.unfollowUser);
 
 // Accept follow request
-router.post("/accept", isAuthenticated, userController.acceptFollowRequestController);
+router.post("/accept", isAuthenticated, followController.acceptFollowRequest);
 
 // Reject follow request
-router.post("/reject", isAuthenticated, userController.rejectFollowRequestController);
+router.post("/reject", isAuthenticated, followController.rejectFollowRequest);
+
+// get list of users of follow request
+router.get("/followRequests", isAuthenticated, followController.getFollowRequests);
+
 
 export default router;
