@@ -73,7 +73,7 @@ export const deleteUser: RequestHandler = async (req, res, next) => {
  * GET /user/getUsers
  * Param: { query, userId }
  */
-export const searchUsersController: RequestHandler = async (req, res, next) => {
+export const searchUsers: RequestHandler = async (req, res, next) => {
   try {
     const { query, userId } = req.query as {
       query: string;
