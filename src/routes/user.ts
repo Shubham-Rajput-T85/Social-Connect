@@ -35,8 +35,16 @@ router.post("/accept", isAuthenticated, followController.acceptFollowRequest);
 // Reject follow request
 router.post("/reject", isAuthenticated, followController.rejectFollowRequest);
 
-// get list of users of follow request
-router.get("/followRequests", isAuthenticated, followController.getFollowRequests);
+// Reject follow request
+router.post("/cancel", isAuthenticated, followController.cancelFollowRequest);
 
+// get list of users of follow request
+router.get("/followRequests", isAuthenticated, followController.getFollowRequestsList);
+
+// get list of users of followers
+router.get("/getFollowers", isAuthenticated, followController.getFollowersList);
+
+// get list of users of following
+router.get("/getFollowing", isAuthenticated, followController.getFollowingList);
 
 export default router;

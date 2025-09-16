@@ -78,7 +78,7 @@ export const getMe: RequestHandler = async (req, res, next) => {
 
     const user = await authService.getMe(token);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(401).json({ message: "User not found" });
     }
 
     res.json({ user });

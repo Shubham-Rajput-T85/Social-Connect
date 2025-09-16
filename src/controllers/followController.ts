@@ -5,7 +5,7 @@ import { AppError } from "../utils/errorUtils";
 
 /**
  * Get the follow state between current user and target user
- * GET /user/state?currentUserId=...&targetUserId=...
+ * GET /user/followState?currentUserId=...&targetUserId=...
  */
 export const getFollowState: RequestHandler = async (req, res, next) => {
     try {
@@ -46,18 +46,18 @@ export const followUser: RequestHandler = async (req, res, next) => {
 
 /**
  * Accept a follow request
- * POST /user/follow/accept
+ * POST /user/accept
  * Body: { targetUserId, currentUserId }
  */
 export const acceptFollowRequest: RequestHandler = async (req, res, next) => {
     try {
-        const { targetUserId, currentUserId } = req.body;
+        const { requesterUserId, targetUserId } = req.body;
 
-        if (!targetUserId || !currentUserId) {
+        if (!requesterUserId || !targetUserId) {
             return res.status(400).json({ message: "Missing required fields" });
         }
 
-        const result = await followService.acceptFollowRequest(targetUserId, currentUserId);
+        const result = await followService.acceptFollowRequest(requesterUserId, targetUserId);
         return res.status(result.success ? 200 : 400).json(result);
     } catch (err) {
         console.error(err);
@@ -89,18 +89,18 @@ export const unfollowUser: RequestHandler = async (req, res, next) => {
 
 /**
  * Reject a follow request
- * POST /user/follow/reject
+ * POST /user/reject
  * Body: { targetUserId, currentUserId }
  */
 export const rejectFollowRequest: RequestHandler = async (req, res, next) => {
     try {
-        const { targetUserId, currentUserId } = req.body;
+        const { requesterUserId, targetUserId } = req.body;
 
-        if (!targetUserId || !currentUserId) {
+        if (!requesterUserId || !targetUserId) {
             return res.status(400).json({ message: "Missing required fields" });
         }
 
-        const result = await followService.acceptFollowRequest(currentUserId, targetUserId);
+        const result = await followService.rejectFollowRequest(requesterUserId, targetUserId);
         return res.status(result.success ? 200 : 400).json(result);
     } catch (err) {
         console.error(err);
@@ -108,9 +108,34 @@ export const rejectFollowRequest: RequestHandler = async (req, res, next) => {
     }
 };
 
+/**
+ * Cancel a follow request
+ * POST /user/cancel
+ * Body: { currentUserId, targetUserId }
+ */
+export const cancelFollowRequest: RequestHandler = async (req, res, next) => {
+    try {
+        const { currentUserId, targetUserId } = req.body;
+        console.log(currentUserId, targetUserId);
+        
+        if (!currentUserId || !targetUserId) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
 
+        const result = await followService.rejectFollowRequest(currentUserId, targetUserId);
+        return res.status(result.success ? 200 : 400).json(result);
+    } catch (err) {
+        console.error(err);
+        next(new AppError("Failed to reject follow request", 500));
+    }
+};
 
-export const getFollowRequests: RequestHandler = async (req, res, next) => {
+/**
+ * Gives list of followRequest user
+ * GET /user/getFollowRequest
+ * Param: { userId }
+ */
+export const getFollowRequestsList: RequestHandler = async (req, res, next) => {
     try {
         const { userId }: any = req.query;
 
@@ -118,10 +143,59 @@ export const getFollowRequests: RequestHandler = async (req, res, next) => {
             return res.status(400).json({ message: "Missing required fields" });
         }
 
-        const requests = await followService.getFollowRequests(userId);
+        const requests = await followService.getFollowRequestsList(userId);
 
         return res.status(200).json({
             followRequests: requests,
+        });
+    } catch (err) {
+        console.error(err);
+        next(err);
+    }
+};
+
+/**
+ * Gives list of followers user
+ * GET /user/getFollowers
+ * Param: { userId }
+ */
+export const getFollowersList: RequestHandler = async (req, res, next) => {
+    try {
+        const { userId }: any = req.query;
+        console.log(userId, "--------------------------------------------------------------------------------------------");
+        if (!userId) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
+
+        const requests = await followService.getFollowersList(userId);
+
+        return res.status(200).json({
+            followersList: requests,
+        });
+    } catch (err) {
+        console.error(err);
+        next(err);
+    }
+};
+
+/**
+ * Gives list of following user
+ * GET /user/getFollowing
+ * Param: { userId }
+ */
+export const getFollowingList: RequestHandler = async (req, res, next) => {
+    try {
+        const { userId }: any = req.query;
+        console.log(userId, "--------------------------------------------------------------------------------------------");
+        
+        if (!userId) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
+
+        const requests = await followService.getFollowingList(userId);
+
+        return res.status(200).json({
+            followingList: requests,
         });
     } catch (err) {
         console.error(err);
