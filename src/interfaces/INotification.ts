@@ -6,7 +6,7 @@ export default interface INotification extends Document {
   type: NotificationType;
   userId: Types.ObjectId;
   postId: Types.ObjectId;
-  fromUserId: Types.ObjectId,
+  senderUserId: Types.ObjectId,
   createdAt: Date;
   updatedAt: Date;
 }
