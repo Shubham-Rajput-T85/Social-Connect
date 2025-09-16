@@ -39,13 +39,15 @@ export const getFollowState = async (
 };
 
 /**
- * Follow user with transaction
+ * Follow user with transaction,
+ * currentUserId - user id who is sending the request,
+ * targetUserId - user id who will recieve the request
  */
 export const followUser = async (
   currentUserId: string,
   targetUserId: string
 ): Promise<FollowActionResult> => {
-  if (currentUserId === targetUserId) {
+  if (currentUserId === targetUserId || !currentUserId || !targetUserId) {
     return { success: false, message: "Cannot follow yourself" };
   }
 
@@ -68,11 +70,13 @@ export const followUser = async (
     const currentIdObj = new Types.ObjectId(currentUserId);
     const targetIdObj = new Types.ObjectId(targetUserId);
 
-    if (targetUser.followers.includes(currentIdObj)) {
+    const followState = await getFollowState(currentUserId, targetUserId);
+
+    if (followState === "Following") {
       return { success: false, message: "Already following", currentState: "Following" };
     }
 
-    if (targetUser.followRequest.includes(currentIdObj)) {
+    if (followState === "Requested") {
       return { success: false, message: "Request already sent", currentState: "Requested" };
     }
 
@@ -108,11 +112,13 @@ export const followUser = async (
 };
 
 /**
- * Accept follow request with transaction
+ * Accept follow request with transaction,
+ * requesterUserId: who request for accepting follow request,
+ * targetUserId: current user of UI who will accept or reject that request
  */
 export const acceptFollowRequest = async (
-  targetUserId: string,
-  requesterUserId: string
+  requesterUserId: string,
+  targetUserId: string
 ): Promise<FollowActionResult> => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -130,7 +136,9 @@ export const acceptFollowRequest = async (
     const requesterIdObj = new Types.ObjectId(requesterUserId);
     const targetIdObj = new Types.ObjectId(targetUserId);
 
-    if (!targetUser.followRequest.includes(requesterIdObj)) {
+    const followState = await getFollowState(requesterUserId, targetUserId);
+
+    if (followState !== "Requested") {
       return { success: false, message: "No follow request from this user" };
     }
 
@@ -176,6 +184,12 @@ export const unfollowUser = async (
     const currentIdObj = new Types.ObjectId(currentUserId);
     const targetIdObj = new Types.ObjectId(targetUserId);
 
+    const followState = await getFollowState(currentUserId, targetUserId);
+
+    if (followState !== "Following") {
+      return { success: false, message: "You cannot unfollow user whom you not following", currentState: "Following" };
+    }
+
     targetUser.followers = targetUser.followers.filter(id => !id.equals(currentIdObj));
     targetUser.followersCount = targetUser.followers.length;
 
@@ -198,10 +212,12 @@ export const unfollowUser = async (
 
 /**
  * Reject follow request with transaction
+ * requesterUserId: who request for accepting follow request,
+ * targetUserId: current user of UI who will accept or reject that request
  */
 export const rejectFollowRequest = async (
-  targetUserId: string,
-  requesterUserId: string
+  requesterUserId: string,
+  targetUserId: string
 ): Promise<FollowActionResult> => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -212,6 +228,12 @@ export const rejectFollowRequest = async (
       .session(session);
 
     if (!targetUser) throw new Error("Target user not found");
+
+    const followState = await getFollowState(requesterUserId, targetUserId);
+
+    if (followState !== "Requested") {
+      return { success: false, message: "No follow request from this user" };
+    }
 
     const requesterIdObj = new Types.ObjectId(requesterUserId);
     targetUser.followRequest = targetUser.followRequest.filter(id => !id.equals(requesterIdObj));
@@ -230,10 +252,30 @@ export const rejectFollowRequest = async (
   }
 };
 
-
-export const getFollowRequests = async (userId: string) => {
+/**
+ * Gives followRequest list for given id
+ */
+export const getFollowRequestsList = async (userId: string) => {
   return await User.findById(userId)
-    .populate("followRequest", "username email name profileUrl")
-    .select("followRequest");
+    .populate("followRequest", "_id username email name profileUrl")
+    .select("followRequest followRequestCount");
+};
+
+/**
+ * Gives followers list for given id
+ */
+export const getFollowersList = async (userId: string) => {
+  return await User.findById(userId)
+    .populate("followers", "_id username email name profileUrl")
+    .select("followers followersCount");
+};
+
+/**
+ * Gives following list for given id
+ */
+export const getFollowingList = async (userId: string) => {
+  return await User.findById(userId)
+    .populate("following", "_id username email name profileUrl")
+    .select("following followingCount");
 };
 
