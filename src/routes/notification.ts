@@ -11,6 +11,6 @@ router.get("/", isAuthenticated, notificationController.getNotifications);
 router.delete("/clear", isAuthenticated, notificationController.clearNotifications);
 
 // Mark notifications as read and clear them
-router.patch("/read", isAuthenticated, notificationController.readNotifications);
+router.put("/read", isAuthenticated, notificationController.readNotifications);
 
 export default router;

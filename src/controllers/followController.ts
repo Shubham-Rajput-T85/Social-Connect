@@ -39,6 +39,16 @@ export const followUser: RequestHandler = async (req, res, next) => {
         }
 
         const result = await followService.followUser(currentUserId, targetUserId);
+
+        if(result.success && result?.isPrivate){
+            const notificationData: notificationDTO = {
+                type: "followRequest",
+                userId: targetUserId,
+                senderUserId: currentUserId
+              } 
+              await triggerNotification(notificationData);
+        }     
+
         return res.status(result.success ? 200 : 400).json(result);
     } catch (err) {
         console.error(err);
@@ -128,7 +138,6 @@ export const rejectFollowRequest: RequestHandler = async (req, res, next) => {
 export const cancelFollowRequest: RequestHandler = async (req, res, next) => {
     try {
         const { currentUserId, targetUserId } = req.body;
-        console.log(currentUserId, targetUserId);
         
         if (!currentUserId || !targetUserId) {
             return res.status(400).json({ message: "Missing required fields" });

@@ -3,7 +3,8 @@ import Notification from "../models/notification";
 import * as socketService from "../services/socketService";
 
 export const createNotification = async (data: notificationDTO) => {
-  return Notification.create(data);
+  const newNotification = await Notification.create(data);
+  return await newNotification.populate("senderUserId", "name username profileUrl");
 };
 
 export const getUserNotifications = async (userId: string) => {

@@ -1,7 +1,5 @@
 import { RequestHandler } from "express";
 import * as notificationService from "../services/notificationService";
-import * as socketService from "../services/socketService";
-import { notificationDTO } from "../dtos/notificationDTO";
 
 export const getNotifications: RequestHandler = async (req, res, next) => {
   try {
@@ -15,8 +13,8 @@ export const getNotifications: RequestHandler = async (req, res, next) => {
 
 export const clearNotifications: RequestHandler = async (req, res, next) => {
   try {
-    const { userId } = req.body;
-    await notificationService.clearNotifications(userId);
+    const { userId } = req.query;
+    await notificationService.clearNotifications(userId as string);
     res.status(200).json({ message: "Notifications cleared" });
   } catch (err) {
     next(err);
@@ -25,8 +23,10 @@ export const clearNotifications: RequestHandler = async (req, res, next) => {
 
 export const readNotifications: RequestHandler = async (req, res, next) => {
   try {
-    const { userId } = req.body;
-    await notificationService.readNotification(userId);
+    console.log("calling read notification");
+    const { id } = req.query;
+    console.log("id",id);
+    await notificationService.readNotification(id as string);
     res.status(200).json({ message: "Notifications read and cleared" });
   } catch (err) {
     next(err);
