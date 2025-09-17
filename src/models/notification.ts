@@ -19,7 +19,7 @@ const notificationSchema = new Schema<INotification>({
         ref: 'Post',
         required: false
     },
-    fromUserId: {
+    senderUserId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true        

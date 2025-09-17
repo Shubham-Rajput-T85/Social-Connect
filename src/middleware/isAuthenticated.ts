@@ -3,7 +3,7 @@ import { AppError } from "../utils/errorUtils";
 import { verifyToken } from "../utils/jwtUtils";
 
 const isAuthenticated: RequestHandler = (req, res, next) => {
-  // ✅ Read JWT from HttpOnly cookie
+  // Read JWT from HttpOnly cookie
   const token = req.cookies?.jwt;
 
   if (!token) {

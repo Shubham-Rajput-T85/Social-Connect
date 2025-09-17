@@ -5,6 +5,7 @@ interface FollowActionResult {
   success: boolean;
   message?: string;
   currentState?: "Follow" | "Requested" | "Following" | "Follow Back";
+  isPrivate?: boolean;
 }
 
 /**
@@ -88,7 +89,7 @@ export const followUser = async (
 
       await session.commitTransaction();
       session.endSession();
-      return { success: true, currentState: "Requested" };
+      return { success: true, currentState: "Requested", isPrivate: true };
     } else {
       // Public account → follow directly
       targetUser.followers.push(currentIdObj);
@@ -101,7 +102,7 @@ export const followUser = async (
 
       await session.commitTransaction();
       session.endSession();
-      return { success: true, currentState: "Following" };
+      return { success: true, currentState: "Following", isPrivate: false };
     }
   } catch (err) {
     await session.abortTransaction();

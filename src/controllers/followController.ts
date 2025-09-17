@@ -1,6 +1,8 @@
 import { RequestHandler } from "express";
 import * as followService from "../services/followService";
 import { AppError } from "../utils/errorUtils";
+import { notificationDTO } from "../dtos/notificationDTO";
+import { triggerNotification } from "../services/notificationService";
 
 
 /**
@@ -37,31 +39,20 @@ export const followUser: RequestHandler = async (req, res, next) => {
         }
 
         const result = await followService.followUser(currentUserId, targetUserId);
+
+        if(result.success && result?.isPrivate){
+            const notificationData: notificationDTO = {
+                type: "followRequest",
+                userId: targetUserId,
+                senderUserId: currentUserId
+              } 
+              await triggerNotification(notificationData);
+        }     
+
         return res.status(result.success ? 200 : 400).json(result);
     } catch (err) {
         console.error(err);
         next(new AppError("Failed to follow user", 500));
-    }
-};
-
-/**
- * Accept a follow request
- * POST /user/accept
- * Body: { targetUserId, currentUserId }
- */
-export const acceptFollowRequest: RequestHandler = async (req, res, next) => {
-    try {
-        const { requesterUserId, targetUserId } = req.body;
-
-        if (!requesterUserId || !targetUserId) {
-            return res.status(400).json({ message: "Missing required fields" });
-        }
-
-        const result = await followService.acceptFollowRequest(requesterUserId, targetUserId);
-        return res.status(result.success ? 200 : 400).json(result);
-    } catch (err) {
-        console.error(err);
-        next(new AppError("Failed to accept follow request", 500));
     }
 };
 
@@ -84,6 +75,37 @@ export const unfollowUser: RequestHandler = async (req, res, next) => {
     } catch (err) {
         console.error(err);
         next(new AppError("Failed to unfollow user", 500));
+    }
+};
+
+/**
+ * Accept a follow request
+ * POST /user/accept
+ * Body: { targetUserId, currentUserId }
+ */
+export const acceptFollowRequest: RequestHandler = async (req, res, next) => {
+    try {
+        const { requesterUserId, targetUserId } = req.body;
+
+        if (!requesterUserId || !targetUserId) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
+
+        const result = await followService.acceptFollowRequest(requesterUserId, targetUserId);
+
+        if(result.success){
+            const notificationData: notificationDTO = {
+                type: "acceptedRequest",
+                userId: requesterUserId,
+                senderUserId: targetUserId
+              } 
+              await triggerNotification(notificationData);
+        }
+
+        return res.status(result.success ? 200 : 400).json(result);
+    } catch (err) {
+        console.error(err);
+        next(new AppError("Failed to accept follow request", 500));
     }
 };
 
@@ -116,7 +138,6 @@ export const rejectFollowRequest: RequestHandler = async (req, res, next) => {
 export const cancelFollowRequest: RequestHandler = async (req, res, next) => {
     try {
         const { currentUserId, targetUserId } = req.body;
-        console.log(currentUserId, targetUserId);
         
         if (!currentUserId || !targetUserId) {
             return res.status(400).json({ message: "Missing required fields" });
@@ -162,7 +183,6 @@ export const getFollowRequestsList: RequestHandler = async (req, res, next) => {
 export const getFollowersList: RequestHandler = async (req, res, next) => {
     try {
         const { userId }: any = req.query;
-        console.log(userId, "--------------------------------------------------------------------------------------------");
         if (!userId) {
             return res.status(400).json({ message: "Missing required fields" });
         }
@@ -186,7 +206,6 @@ export const getFollowersList: RequestHandler = async (req, res, next) => {
 export const getFollowingList: RequestHandler = async (req, res, next) => {
     try {
         const { userId }: any = req.query;
-        console.log(userId, "--------------------------------------------------------------------------------------------");
         
         if (!userId) {
             return res.status(400).json({ message: "Missing required fields" });
