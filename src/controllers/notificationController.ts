@@ -32,4 +32,3 @@ export const readNotifications: RequestHandler = async (req, res, next) => {
     next(err);
   }
 };
-
