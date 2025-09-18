@@ -2,9 +2,9 @@ import { RequestHandler } from "express";
 import { addPostDTO } from "../dtos/post/addPostDTO";
 import * as postService from "../services/postService";
 
-export const getPostByUserId: RequestHandler = async (req, res, next) => {
+export const getPostsByUserId: RequestHandler = async (req: any, res, next) => {
     try {
-        const { userId } : any = req.query;
+        const userId = req.user.userId;
 
         if (!userId) {
             return res.status(400).json({ message: "Missing required fields" });
@@ -24,6 +24,33 @@ export const getPostByUserId: RequestHandler = async (req, res, next) => {
     }
 }
 
+export const getHomeFeedPost: RequestHandler = async (req: any, res, next) => {
+    try {
+      const userId = req.user?.userId;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+  
+      if (!userId) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+  
+      const { posts, pagination } = await postService.getPostsOfUserAndFollowingUser(
+        userId,
+        page,
+        limit
+      );
+  
+      return res.status(200).json({
+        success: true,
+        postList: posts,
+        pagination,
+      });
+    } catch (err) {
+      console.error("Error fetching home feed posts:", err);
+      next(err);
+    }
+  };
+  
 export const deletePost: RequestHandler = async (req, res, next) => {
     try {
         const { postId } : any = req.query;

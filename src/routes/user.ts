@@ -17,9 +17,7 @@ router.delete("/delete", isAuthenticated, userController.deleteUser);
 // get user by search parameter
 router.get("/getUsers", isAuthenticated, userController.searchUsers);
 
-
 // User Follow related Routes
-
 // Get follow state
 router.get("/followState", isAuthenticated, followController.getFollowState);
 

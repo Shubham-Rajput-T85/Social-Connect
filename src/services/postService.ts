@@ -9,9 +9,48 @@ import User from "../models/user";
  * Get all posts for a specific user
  */
 export const getPostsByUser = async (userId: string) => {
-    const result = await Post.find({ userId }).sort({ createdAt: -1 }).populate("userId", "username email name");
+    const result = await Post.find({ userId }).sort({ createdAt: -1 }).populate("userId", "username email name profileUrl");
     return result;
 }
+
+export const getPostsOfUserAndFollowingUser = async (
+    userId: string,
+    page: number = 1,
+    limit: number = 10
+) => {
+    const currentUser = await User.findById(userId).select("following");
+
+    if (!currentUser) {
+        throw new AppError("User not found", 404);
+    }
+
+    const usersToFetch = [userId, ...(currentUser.following || [])];
+
+    // Skip formula for pagination
+    const skip = (page - 1) * limit;
+
+    // Get total count for frontend
+    const total = await Post.countDocuments({ userId: { $in: usersToFetch } });
+
+    // Fetch paginated posts
+    const posts = await Post.find({ userId: { $in: usersToFetch } })
+        .sort({ createdAt: -1 }) // newest first
+        .skip(skip)
+        .limit(limit)
+        .populate("userId", "username email name profileUrl bio");
+
+    const hasMore = skip + posts.length < total;
+
+    return {
+        posts,
+        pagination: {
+            page,
+            limit,
+            total,
+            hasMore
+        }
+    };
+};
 
 /**
  * Add post
