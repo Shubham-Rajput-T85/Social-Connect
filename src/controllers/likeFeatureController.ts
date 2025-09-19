@@ -1,5 +1,7 @@
 import { RequestHandler } from "express";
 import * as likeFeatureService from "../services/likeFeatureService";
+import { notificationDTO } from "../dtos/notificationDTO";
+import { triggerNotification } from "../services/notificationService";
 
 export const likePost: RequestHandler = async(req, res, next) => {
     try{
@@ -7,7 +9,16 @@ export const likePost: RequestHandler = async(req, res, next) => {
         console.log("userId:",userId);
         const postId = req.params.postId;
         const data = await likeFeatureService.likePost(userId, postId as string);
-        console.log(data);
+
+        if(data?.success){
+            const notificationData: notificationDTO = {
+                type: "like",
+                userId: data.postUserId,
+                senderUserId: userId
+              } 
+              await triggerNotification(notificationData);
+        }
+
         res.status(200).json({ success: true, data });
     }
     catch(err){
@@ -31,7 +42,6 @@ export const getUsersWhoLikePost: RequestHandler = async(req, res, next) => {
     try{
         const postId = req.params.postId;
         const data = await likeFeatureService.getUsersWhoLikePost(postId as string);
-        console.log(data);
         res.status(200).json({ success: true, data });
     }
     catch(err){
@@ -44,7 +54,6 @@ export const didCurrentUserLikePost: RequestHandler = async(req, res, next) => {
         const userId = (req as any).user.userId;
         const postId = req.params.postId;
         const isLiked = await likeFeatureService.didCurrentUserLikePost(userId, postId as string);
-        console.log(isLiked);
         res.status(200).json({ success: true, isLiked });
     }
     catch(err){
