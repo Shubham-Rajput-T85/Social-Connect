@@ -6,8 +6,13 @@ export const likePost = async (userId: string, postId: string) => {
         return null;
     }
     const newLike = await Like.create({ userId, postId });
-    await Post.findByIdAndUpdate(postId, { $inc: { likeCount: 1 } });
-    return await newLike.populate("userId", "_id name username bio profileUrl");
+    const postData = await Post.findByIdAndUpdate(postId, { $inc: { likeCount: 1 } });
+    
+    if (!postData){
+        return null;
+    }
+    // return await newLike.populate("userId", "_id name username bio profileUrl");
+    return { success: true, postUserId: postData.userId.toString() };
 };
 
 export const undoLikePost = async (userId: string, postId: string) => {

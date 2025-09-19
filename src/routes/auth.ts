@@ -1,6 +1,5 @@
 import { Router } from "express";
 import * as authController from "../controllers/authController";
-// import { upload } from "../middleware/upload";
 import { validate } from "../middleware/inputValidation";
 import { loginValidation, signupValidation } from "../validators/authValidator";
 import { upload } from "../middleware/upload";
