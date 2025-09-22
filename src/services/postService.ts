@@ -37,7 +37,7 @@ export const getPostsOfUserAndFollowingUser = async (
         .sort({ createdAt: -1 }) // newest first
         .skip(skip)
         .limit(limit)
-        .populate("userId", "username email name profileUrl bio");
+        .populate("userId", "_id username email name profileUrl bio");
 
     const hasMore = skip + posts.length < total;
 

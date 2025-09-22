@@ -27,6 +27,7 @@ export const getMyPostFeed: RequestHandler = async (req: any, res, next) => {
 
 export const getPostByUser: RequestHandler = async (req: any, res, next) => {
     try {
+        console.log("called----------------")
         const userId = req.params.userId;
         const currentUserId = req.user.userId;
 
@@ -36,10 +37,10 @@ export const getPostByUser: RequestHandler = async (req: any, res, next) => {
 
         const isPrivate = await genericService.fetchOwnerId({collectionName: "User", resourceId: userId, ownerField: "isPrivate"});
         console.log("isPrivate:",isPrivate);
-        const userFollowingList: any = await genericService.fetchOwnerId({collectionName: "User", resourceId: userId, ownerField: "following"});
+        const userFollowingList: any = await genericService.fetchOwnerId({collectionName: "User", resourceId: currentUserId, ownerField: "following"});
         console.log("following list:",userFollowingList);
-        const isUserAuthorized = userFollowingList?.some((ids: any) => ids.toString() === currentUserId) ?? false;
-
+        const isUserAuthorized = userFollowingList?.some((ids: any) => ids.toString() === userId) ?? false;
+        console.log(isUserAuthorized);
         if (isPrivate && !isUserAuthorized) {
             return res.status(400).json({ message: "Not Authoirzed to see post" });
         }

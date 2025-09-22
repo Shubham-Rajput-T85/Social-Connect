@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
-import { addCommentsDTO } from "../dtos/comments/addCommentsDTO";
+import { AddCommentDTO } from "../dtos/comments/addCommentDTO";
+import { EditCommentDTO } from "../dtos/comments/EditCommentDTO";
 import Comments from "../models/comments";
 import { AppError } from "../utils/errorUtils";
 import IPost from "../interfaces/IPost";
@@ -40,7 +41,7 @@ export const getComments = async (
 /**
  * Add Comments
  */
-export const addComments = async (commentsData: addCommentsDTO) => {
+export const addComments = async (commentsData: AddCommentDTO) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -67,7 +68,11 @@ export const addComments = async (commentsData: addCommentsDTO) => {
         await session.commitTransaction();
         session.endSession();
 
-        return;
+        return {
+            message: "Comment added successfully",
+            comment: newComment[0], // return the newly created comment
+            updatedPost
+        };
     } catch (error) {
         // Rollback if anything fails
         await session.abortTransaction();
@@ -75,6 +80,38 @@ export const addComments = async (commentsData: addCommentsDTO) => {
         throw error;
     }
 };
+
+/**
+ * Edit Comments
+ */
+export const editComment = async (data: EditCommentDTO) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+  
+    try {
+      // Step 1: Find and update the comment
+      const updatedComment = await Comments.findOneAndUpdate(
+        { _id: data.commentId, postId: data.postId, userId: data.userId },
+        { $set: { commentText: data.commentText, updatedAt: new Date() } },
+        { new: true, session }
+      );
+  
+      if (!updatedComment) {
+        throw new AppError("Comment not found or you are not authorized to edit", 404);
+      }
+  
+      // Commit transaction
+      await session.commitTransaction();
+      session.endSession();
+  
+      return updatedComment;
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
+  };
+
 
 /**
  * Delete Comment by Id
