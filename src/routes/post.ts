@@ -38,7 +38,11 @@ router.get("/:postId/comments", isAuthenticated, commentsController.getComments)
 
 router.post("/:postId/comments/add", isAuthenticated, commentsController.addComment);
 
-router.delete("/:postId/comment/delete/:commentId", isAuthenticated, commentsController.deleteComment);
+router.delete("/:postId/comments/delete/:commentId", isAuthenticated, commentsController.deleteComment);
+
+// Edit a comment
+router.patch("/:postId/comments/edit/:commentId", isAuthenticated, commentsController.editComment);
+
 
 //
 
