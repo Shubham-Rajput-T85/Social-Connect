@@ -45,4 +45,7 @@ router.get("/getFollowers", isAuthenticated, followController.getFollowersList);
 // get list of users of following
 router.get("/getFollowing", isAuthenticated, followController.getFollowingList);
 
+// get list of friend suggestion
+router.get("/suggestedFriends", isAuthenticated, userController.getSuggestedFriends);
+
 export default router;

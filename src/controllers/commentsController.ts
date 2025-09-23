@@ -1,6 +1,6 @@
 import { RequestHandler } from "express";
 import * as commentsService from "../services/commentsService";
-import { AddCommentDTO } from "../dtos/comments/addCommentDTO";
+import { AddCommentDTO } from "../dtos/comments/addCommentsDTO";
 import * as genericService from "../services/genericService";
 import { EditCommentDTO } from "../dtos/comments/EditCommentDTO";
 import { notificationDTO } from "../dtos/notificationDTO";
@@ -90,7 +90,6 @@ export const addComment: RequestHandler = async (req, res, next) => {
         console.log("data:", commentsData);
 
         const response = await commentsService.addComments(commentsData);
-        console.log(response);
 
         if(response && postOwnerUserId.toString() !== userId){
             const notificationData: notificationDTO = {
@@ -102,7 +101,8 @@ export const addComment: RequestHandler = async (req, res, next) => {
         }
 
         return res.status(201).json({
-            message: "Comment added successfully"
+            message: "Comment added successfully",
+            comment: response.comment,
         });
     }
     catch (err) {

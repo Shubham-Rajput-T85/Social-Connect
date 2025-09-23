@@ -28,7 +28,7 @@ export const undoLikePost = async (userId: string, postId: string) => {
 };
 
 export const getUsersWhoLikePost = async (postId: string) => {
-    return Like.find({ postId }).populate("userId", "_id name username bio profileUrl");   
+    return Like.find({ postId }).populate("userId", "_id name username bio profileUrl isPrivate");   
 }
 
 export const didCurrentUserLikePost = async (userId: string, postId: string) => {

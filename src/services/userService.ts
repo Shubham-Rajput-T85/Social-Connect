@@ -3,7 +3,7 @@ import { userDetailDTO } from "../dtos/user/userDetailDTO";
 import User from "../models/user"
 
 export const findUserById = async (userId: string) => {
-    const user = await User.findOne({ _id: userId }).select("_id name username bio profileUrl email");
+    const user = await User.findOne({ _id: userId }).select("_id name username bio profileUrl email isPrivate");
     return user;
 }
 
@@ -68,237 +68,90 @@ export const searchUsers = async (searchQuery: string, currentUserId: string) =>
       { email: { $regex: `^${trimmedQuery}`, $options: "i" } },
     ],
   })
-    .select("_id name username bio email profileUrl postCount followersCount followingCount followRequestCount") // only return required fields
+    .select("_id name username bio email profileUrl postCount followersCount followingCount followRequestCount isPrivate") // only return required fields
     .limit(20); // limit results for performance
 
   return users;
 };
 
-interface FollowActionResult {
-  success: boolean;
-  message?: string;
-  currentState?: "Follow" | "Requested" | "Following" | "Follow Back";
-}
+export const getSuggestedFriends = async (userId: string) => {
+  const userObjectId = new mongoose.Types.ObjectId(userId);
 
-/**
- * Get the follow state between current user and target user
- */
-export const getFollowState = async (
-  currentUserId: string,
-  targetUserId: string
-): Promise<"Follow" | "Requested" | "Following" | "Follow Back"> => {
-  const targetUser = await User.findById(targetUserId)
-    .select("followers followRequest following")
-    .lean();
+  const suggestedUsers = await User.aggregate([
+    // Step 1: Match current user
+    { $match: { _id: userObjectId } },
 
-  if (!targetUser) throw new Error("Target user not found");
+    // Step 2: Get the users that this user is following
+    {
+      $project: {
+        following: 1
+      }
+    },
 
-  const currentFollowsTarget = targetUser.followers.some(
-    (id: Types.ObjectId) => id.toString() === currentUserId
-  );
+    // Step 3: Lookup followers of each followed user
+    {
+      $lookup: {
+        from: "users", // collection name
+        localField: "following",
+        foreignField: "_id",
+        as: "followingUsers"
+      }
+    },
 
-  const currentRequestedTarget = targetUser.followRequest.some(
-    (id: Types.ObjectId) => id.toString() === currentUserId
-  );
+    // Step 4: Unwind the array of followed users
+    { $unwind: "$followingUsers" },
 
-  const targetFollowsCurrent = targetUser.following.some(
-    (id: Types.ObjectId) => id.toString() === currentUserId
-  );
+    // Step 5: Unwind the followers of each followed user
+    { $unwind: "$followingUsers.followers" },
 
-  if (currentFollowsTarget) return "Following";
-  if (currentRequestedTarget) return "Requested";
-  if (targetFollowsCurrent) return "Follow Back";
-  return "Follow";
+    // Step 6: Filter out users already followed by current user and self
+    {
+      $match: {
+        $expr: {
+          $and: [
+            { $ne: ["$followingUsers.followers", userObjectId] }, // not self
+            { $not: { $in: ["$followingUsers.followers", "$following"] } } // not already followed
+          ]
+        }
+      }
+    },
+
+    // Step 7: Group unique suggested users
+    {
+      $group: {
+        _id: "$followingUsers.followers"
+      }
+    },
+
+    // Step 8: Lookup full user info
+    {
+      $lookup: {
+        from: "users",
+        localField: "_id",
+        foreignField: "_id",
+        as: "user"
+      }
+    },
+    { $unwind: "$user" },
+
+    // Step 9: Project only required fields
+    {
+      $project: {
+        _id: "$user._id",
+        name: "$user.name",
+        username: "$user.username",
+        bio: "$user.bio",
+        profileUrl: "$user.profileUrl",
+        followersCount: "$user.followersCount",
+        followingCount: "$user.followingCount",
+        isPrivate: "$user.isPrivate"
+      }
+    },
+
+    // Step 10: Limit results
+    { $limit: 20 }
+  ]);
+
+  return suggestedUsers;
 };
 
-/**
- * Follow user with transaction
- */
-export const followUser = async (
-  currentUserId: string,
-  targetUserId: string
-): Promise<FollowActionResult> => {
-  if (currentUserId === targetUserId) {
-    return { success: false, message: "Cannot follow yourself" };
-  }
-
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const targetUser = await User.findById(targetUserId)
-      .select("followers followRequest following isPrivate followersCount followRequestCount")
-      .session(session);
-
-    if (!targetUser) throw new Error("Target user not found");
-
-    const currentUser = await User.findById(currentUserId)
-      .select("following followingCount")
-      .session(session);
-
-    if (!currentUser) throw new Error("Current user not found");
-
-    const currentIdObj = new Types.ObjectId(currentUserId);
-    const targetIdObj = new Types.ObjectId(targetUserId);
-
-    if (targetUser.followers.includes(currentIdObj)) {
-      return { success: false, message: "Already following", currentState: "Following" };
-    }
-
-    if (targetUser.followRequest.includes(currentIdObj)) {
-      return { success: false, message: "Request already sent", currentState: "Requested" };
-    }
-
-    if (targetUser.isPrivate) {
-      // Private account → add to followRequest
-      targetUser.followRequest.push(currentIdObj);
-      targetUser.followRequestCount = targetUser.followRequest.length;
-      await targetUser.save({ session });
-
-      await session.commitTransaction();
-      session.endSession();
-      return { success: true, currentState: "Requested" };
-    } else {
-      // Public account → follow directly
-      targetUser.followers.push(currentIdObj);
-      targetUser.followersCount = targetUser.followers.length;
-
-      currentUser.following.push(targetIdObj);
-      currentUser.followingCount = currentUser.following.length;
-
-      await Promise.all([targetUser.save({ session }), currentUser.save({ session })]);
-
-      await session.commitTransaction();
-      session.endSession();
-      return { success: true, currentState: "Following" };
-    }
-  } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error(err);
-    return { success: false, message: "Failed to follow user" };
-  }
-};
-
-/**
- * Accept follow request with transaction
- */
-export const acceptFollowRequest = async (
-  targetUserId: string,
-  requesterUserId: string
-): Promise<FollowActionResult> => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const targetUser = await User.findById(targetUserId)
-      .select("followRequest followers followersCount")
-      .session(session);
-    const requester = await User.findById(requesterUserId)
-      .select("following followingCount")
-      .session(session);
-
-    if (!targetUser || !requester) throw new Error("User not found");
-
-    const requesterIdObj = new Types.ObjectId(requesterUserId);
-    const targetIdObj = new Types.ObjectId(targetUserId);
-
-    if (!targetUser.followRequest.includes(requesterIdObj)) {
-      return { success: false, message: "No follow request from this user" };
-    }
-
-    // Remove from followRequest and add to followers
-    targetUser.followRequest = targetUser.followRequest.filter(id => !id.equals(requesterIdObj));
-    targetUser.followRequestCount = targetUser.followRequest.length;
-    targetUser.followers.push(requesterIdObj);
-    targetUser.followersCount = targetUser.followers.length;
-
-    requester.following.push(targetIdObj);
-    requester.followingCount = requester.following.length;
-
-    await Promise.all([targetUser.save({ session }), requester.save({ session })]);
-
-    await session.commitTransaction();
-    session.endSession();
-
-    return { success: true, currentState: "Following" };
-  } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error(err);
-    return { success: false, message: "Failed to accept follow request" };
-  }
-};
-
-/**
- * Unfollow user with transaction
- */
-export const unfollowUser = async (
-  currentUserId: string,
-  targetUserId: string
-): Promise<FollowActionResult> => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const targetUser = await User.findById(targetUserId).select("followers followersCount").session(session);
-    const currentUser = await User.findById(currentUserId).select("following followingCount").session(session);
-
-    if (!targetUser || !currentUser) throw new Error("User not found");
-
-    const currentIdObj = new Types.ObjectId(currentUserId);
-    const targetIdObj = new Types.ObjectId(targetUserId);
-
-    targetUser.followers = targetUser.followers.filter(id => !id.equals(currentIdObj));
-    targetUser.followersCount = targetUser.followers.length;
-
-    currentUser.following = currentUser.following.filter(id => !id.equals(targetIdObj));
-    currentUser.followingCount = currentUser.following.length;
-
-    await Promise.all([targetUser.save({ session }), currentUser.save({ session })]);
-
-    await session.commitTransaction();
-    session.endSession();
-
-    return { success: true, currentState: "Follow" };
-  } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error(err);
-    return { success: false, message: "Failed to unfollow user" };
-  }
-};
-
-/**
- * Reject follow request with transaction
- */
-export const rejectFollowRequest = async (
-  targetUserId: string,
-  requesterUserId: string
-): Promise<FollowActionResult> => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const targetUser = await User.findById(targetUserId)
-      .select("followRequest followRequestCount")
-      .session(session);
-
-    if (!targetUser) throw new Error("Target user not found");
-
-    const requesterIdObj = new Types.ObjectId(requesterUserId);
-    targetUser.followRequest = targetUser.followRequest.filter(id => !id.equals(requesterIdObj));
-    targetUser.followRequestCount = targetUser.followRequest.length;
-
-    await targetUser.save({ session });
-    await session.commitTransaction();
-    session.endSession();
-
-    return { success: true, currentState: "Follow" };
-  } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error(err);
-    return { success: false, message: "Failed to reject follow request" };
-  }
-};

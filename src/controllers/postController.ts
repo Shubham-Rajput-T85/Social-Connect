@@ -41,8 +41,11 @@ export const getPostByUser: RequestHandler = async (req: any, res, next) => {
         console.log("following list:",userFollowingList);
         const isUserAuthorized = userFollowingList?.some((ids: any) => ids.toString() === userId) ?? false;
         console.log(isUserAuthorized);
-        if (isPrivate && !isUserAuthorized) {
-            return res.status(400).json({ message: "Not Authoirzed to see post" });
+        console.log(isPrivate && !isUserAuthorized);
+        if(isPrivate){
+            if (!isUserAuthorized) {
+                return res.status(403).json({ message: "Not Authoirzed to see post" });
+            }
         }
 
         const response = await postService.getPostsByUser(userId);

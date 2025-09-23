@@ -11,7 +11,7 @@ import { clearCookie } from "../utils/cookieUtils";
  */
 export const updateUserProfile: RequestHandler = async (req, res, next) => {
     try {
-        const userDetails: userDetailDTO = {...req.body, profileUrl: req.file ? `/uploads/${req.file.filename}` : ""};
+        const userDetails: userDetailDTO = { ...req.body, profileUrl: req.file ? `/uploads/${req.file.filename}` : "" };
 
         if (!userDetails.name || !userDetails.username || !userDetails.id) {
             return res.status(400).json({ message: "Missing required fields" });
@@ -25,7 +25,7 @@ export const updateUserProfile: RequestHandler = async (req, res, next) => {
 
         return res.status(201).json({
             user: result.user
-          });
+        });
 
     }
     catch (err) {
@@ -42,13 +42,13 @@ export const updateUserProfile: RequestHandler = async (req, res, next) => {
  */
 export const deleteUser: RequestHandler = async (req, res, next) => {
     try {
-        const { userId } : any = req.query;
+        const { userId }: any = req.query;
 
         if (!userId) {
             return res.status(400).json({ message: "Missing required fields" });
         }
         console.log(userId);
-        
+
         const result = await userService.deleteUser(userId);
         if (!result.success) {
             throw new AppError(result.message || "error occured while deleting user");
@@ -71,27 +71,48 @@ export const deleteUser: RequestHandler = async (req, res, next) => {
  * Param: { query, userId }
  */
 export const searchUsers: RequestHandler = async (req, res, next) => {
-  try {
-    const { query, userId } = req.query as {
-      query: string;
-      userId: string;
-    };
+    try {
+        const { query, userId } = req.query as {
+            query: string;
+            userId: string;
+        };
 
-    if (!query) {
-      return res.status(400).json({ message: "Search query is required" });
+        if (!query) {
+            return res.status(400).json({ message: "Search query is required" });
+        }
+
+        if (!userId) {
+            return res.status(400).json({ message: "Current user ID is required" });
+        }
+
+        const users = await userService.searchUsers(query, userId);
+
+        console.log(users);
+
+        return res.status(200).json({ users });
+    } catch (error) {
+        console.error("Search error:", error);
+        next(new AppError("Error while searching users", 500));
     }
+};
 
-    if (!userId) {
-      return res.status(400).json({ message: "Current user ID is required" });
+/**
+ * Get suggested friends
+ * GET /user/suggestedFriends?userId=...
+ */
+export const getSuggestedFriends: RequestHandler = async (req: any, res, next) => {
+    try {
+        const currentUserId = req.user.userId;
+
+        if (!currentUserId) {
+            return res.status(400).json({ message: "User ID is required" });
+        }
+
+        const suggestedUsers = await userService.getSuggestedFriends(currentUserId);
+
+        return res.status(200).json({ users: suggestedUsers });
+    } catch (error) {
+        console.error("Suggested friends error:", error);
+        next(new AppError("Error while fetching suggested friends", 500));
     }
-
-    const users = await userService.searchUsers(query, userId);
-
-    console.log(users);
-    
-    return res.status(200).json({ users });
-  } catch (error) {
-    console.error("Search error:", error);
-    next(new AppError("Error while searching users", 500));
-  }
 };
