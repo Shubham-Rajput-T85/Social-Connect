@@ -9,7 +9,7 @@ import User from "../models/user";
  * Get all posts for a specific user
  */
 export const getPostsByUser = async (userId: string) => {
-    const result = await Post.find({ userId }).sort({ createdAt: -1 }).populate("userId", "username email name profileUrl");
+    const result = await Post.find({ userId }).sort({ createdAt: -1 }).populate("userId", "username email name profileUrl isPrivate");
     return result;
 }
 
@@ -37,7 +37,7 @@ export const getPostsOfUserAndFollowingUser = async (
         .sort({ createdAt: -1 }) // newest first
         .skip(skip)
         .limit(limit)
-        .populate("userId", "_id username email name profileUrl bio");
+        .populate("userId", "_id username email name profileUrl bio isPrivate");
 
     const hasMore = skip + posts.length < total;
 

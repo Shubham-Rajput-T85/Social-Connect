@@ -37,7 +37,7 @@ export const login = async (res:Response, loginObj: loginDTO) => {
           { email: loginObj.usernameOrEmail },
           { username: loginObj.usernameOrEmail }
         ]
-      }).select("_id name username bio profileUrl email hashPassword");
+      }).select("_id name username bio profileUrl email hashPassword isPrivate");
 
     if (!userObj) {
         const error = new AppError("user doesnt exist");
@@ -72,6 +72,6 @@ export const login = async (res:Response, loginObj: loginDTO) => {
 
 export const getMe = async (token: string) => {
     const decoded:any = verifyToken(token); // decode JWT
-    const user = await User.findById(decoded.userId).select("_id name username bio profileUrl email");
+    const user = await User.findById(decoded.userId).select("_id name username bio profileUrl email isPrivate");
     return user;  
 }

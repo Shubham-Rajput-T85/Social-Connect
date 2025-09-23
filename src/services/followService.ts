@@ -258,7 +258,7 @@ export const rejectFollowRequest = async (
  */
 export const getFollowRequestsList = async (userId: string) => {
   return await User.findById(userId)
-    .populate("followRequest", "_id username email name profileUrl")
+    .populate("followRequest", "_id username email name profileUrl isPrivate")
     .select("followRequest followRequestCount");
 };
 
@@ -267,7 +267,7 @@ export const getFollowRequestsList = async (userId: string) => {
  */
 export const getFollowersList = async (userId: string) => {
   return await User.findById(userId)
-    .populate("followers", "_id username email name profileUrl")
+    .populate("followers", "_id username email name profileUrl isPrivate")
     .select("followers followersCount");
 };
 
@@ -276,7 +276,7 @@ export const getFollowersList = async (userId: string) => {
  */
 export const getFollowingList = async (userId: string) => {
   return await User.findById(userId)
-    .populate("following", "_id username email name profileUrl")
+    .populate("following", "_id username email name profileUrl isPrivate")
     .select("following followingCount");
 };
 

@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { AddCommentDTO } from "../dtos/comments/addCommentDTO";
+import { AddCommentDTO } from "../dtos/comments/addCommentsDTO";
 import { EditCommentDTO } from "../dtos/comments/EditCommentDTO";
 import Comments from "../models/comments";
 import { AppError } from "../utils/errorUtils";
@@ -23,7 +23,7 @@ export const getComments = async (
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("userId", "username email name profileUrl bio").lean();
+        .populate("userId", "username email name profileUrl bio isPrivate").lean();
 
     const hasMore = skip + comments.length < total;
 
@@ -64,13 +64,17 @@ export const addComments = async (commentsData: AddCommentDTO) => {
             throw new AppError("Post not found to update comments count", 404);
         }
 
+        const populatedComment = await newComment[0].populate("userId", "username email name profileUrl bio isPrivate");
+
         // Commit transaction
         await session.commitTransaction();
         session.endSession();
 
+
+
         return {
             message: "Comment added successfully",
-            comment: newComment[0], // return the newly created comment
+            comment: populatedComment,
             updatedPost
         };
     } catch (error) {

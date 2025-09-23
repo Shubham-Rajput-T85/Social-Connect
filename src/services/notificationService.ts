@@ -4,12 +4,12 @@ import * as socketService from "../services/socketService";
 
 export const createNotification = async (data: notificationDTO) => {
   const newNotification = await Notification.create(data);
-  return await newNotification.populate("senderUserId", "name username profileUrl");
+  return await newNotification.populate("senderUserId", "name username profileUrl isPrivate");
 };
 
 export const getUserNotifications = async (userId: string) => {
   return Notification.find({ userId })
-    .populate("senderUserId", "name username profileUrl")
+    .populate("senderUserId", "name username profileUrl isPrivate")
     .sort({ createdAt: -1 });
 };
 
