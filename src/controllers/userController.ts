@@ -45,7 +45,7 @@ export const deleteUser: RequestHandler = async (req, res, next) => {
         const { userId }: any = req.query;
 
         if (!userId) {
-            return res.status(400).json({ message: "Missing required fields" });
+            return res.status(403).json({ message: "Not authenticated" });
         }
         console.log(userId);
 
@@ -82,7 +82,7 @@ export const searchUsers: RequestHandler = async (req, res, next) => {
         }
 
         if (!userId) {
-            return res.status(400).json({ message: "Current user ID is required" });
+            return res.status(403).json({ message: "Not authenticated" });
         }
 
         const users = await userService.searchUsers(query, userId);
@@ -105,7 +105,7 @@ export const getSuggestedFriends: RequestHandler = async (req: any, res, next) =
         const currentUserId = req.user.userId;
 
         if (!currentUserId) {
-            return res.status(400).json({ message: "User ID is required" });
+            return res.status(403).json({ message: "Not authenticated" });
         }
 
         const suggestedUsers = await userService.getSuggestedFriends(currentUserId);
@@ -116,3 +116,24 @@ export const getSuggestedFriends: RequestHandler = async (req: any, res, next) =
         next(new AppError("Error while fetching suggested friends", 500));
     }
 };
+
+/**
+ * Get suggested friends
+ * PATCH /user/updateAccountStatus
+ */
+export const togglePrivateState: RequestHandler = async (req: any, res, next) => {
+    try {
+        const currentUserId = req.user.userId;
+
+        if (!currentUserId) {
+            return res.status(403).json({ message: "Not authenticated" });
+        }
+
+        const response = await userService.togglePrivateState(currentUserId);
+
+        return res.status(200).json({ success: true, data: response });
+    } catch (error) {
+        console.error("private state error:", error);
+        next(new AppError("Error while toggle private state", 500));
+    }
+}
