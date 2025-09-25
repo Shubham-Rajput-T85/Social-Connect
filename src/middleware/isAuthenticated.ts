@@ -18,8 +18,6 @@ const isAuthenticated: RequestHandler = (req, res, next) => {
     // Attach user info to request for later use
     (req as any).user = decodedToken;
 
-    console.log("current user",(req as any).user);
-
     return next();
   } catch (err) {
     console.error("JWT verification failed:", err);

@@ -6,8 +6,6 @@ import { clearCookie } from "../utils/cookieUtils";
 
 export const signup: RequestHandler = async (req, res, next) => {
   try {
-    console.log("Incoming Body:", req.body);
-    console.log("Incoming File:", req.file);
 
     const { name, email, username, password, bio } = req.body;
 
