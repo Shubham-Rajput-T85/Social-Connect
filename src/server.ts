@@ -2,8 +2,8 @@ import http from "http";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import app from "./app";
-import registerNotificationSocket from "./sockets/notificationSocket";
 import { initIO } from "./utils/socketUtils";
+import registerAuthSocket from "./sockets/authSocket";
 
 dotenv.config();
 
@@ -17,7 +17,7 @@ const server = http.createServer(app);
 const io = initIO(server);
 
 // Register notification socket handlers
-registerNotificationSocket(io);
+registerAuthSocket(io);
 
 // Start MongoDB + Server
 mongoose
