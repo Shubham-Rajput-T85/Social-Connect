@@ -1,10 +1,11 @@
 import mongoose, { Types } from "mongoose";
 import User from "../models/user";
+import { FollowState } from "../constants/common";
 
 interface FollowActionResult {
   success: boolean;
   message?: string;
-  currentState?: "Follow" | "Requested" | "Following" | "Follow Back";
+  currentState?: FollowState;
   isPrivate?: boolean;
 }
 
@@ -14,7 +15,7 @@ interface FollowActionResult {
 export const getFollowState = async (
   currentUserId: string,
   targetUserId: string
-): Promise<"Follow" | "Requested" | "Following" | "Follow Back"> => {
+): Promise<FollowState> => {
   const targetUser = await User.findById(targetUserId)
     .select("followers followRequest following")
     .lean();
@@ -33,10 +34,10 @@ export const getFollowState = async (
     (id: Types.ObjectId) => id.toString() === currentUserId
   );
 
-  if (currentFollowsTarget) return "Following";
-  if (currentRequestedTarget) return "Requested";
-  if (targetFollowsCurrent) return "Follow Back";
-  return "Follow";
+  if (currentFollowsTarget) return FollowState.FOLLOWING;
+  if (currentRequestedTarget) return FollowState.REQUESTED;
+  if (targetFollowsCurrent) return FollowState.FOLLOW_BACK;
+  return FollowState.FOLLOW;
 };
 
 /**
@@ -74,11 +75,11 @@ export const followUser = async (
     const followState = await getFollowState(currentUserId, targetUserId);
 
     if (followState === "Following") {
-      return { success: false, message: "Already following", currentState: "Following" };
+      return { success: false, message: "Already following", currentState: FollowState.FOLLOWING };
     }
 
     if (followState === "Requested") {
-      return { success: false, message: "Request already sent", currentState: "Requested" };
+      return { success: false, message: "Request already sent", currentState: FollowState.REQUESTED };
     }
 
     if (targetUser.isPrivate) {
@@ -89,7 +90,7 @@ export const followUser = async (
 
       await session.commitTransaction();
       session.endSession();
-      return { success: true, currentState: "Requested", isPrivate: true };
+      return { success: true, currentState: FollowState.REQUESTED, isPrivate: true };
     } else {
       // Public account → follow directly
       targetUser.followers.push(currentIdObj);
@@ -102,7 +103,7 @@ export const followUser = async (
 
       await session.commitTransaction();
       session.endSession();
-      return { success: true, currentState: "Following", isPrivate: false };
+      return { success: true, currentState: FollowState.FOLLOWING, isPrivate: false };
     }
   } catch (err) {
     await session.abortTransaction();
@@ -157,7 +158,7 @@ export const acceptFollowRequest = async (
     await session.commitTransaction();
     session.endSession();
 
-    return { success: true, currentState: "Following" };
+    return { success: true, currentState: FollowState.FOLLOWING };
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
@@ -188,7 +189,7 @@ export const unfollowUser = async (
     const followState = await getFollowState(currentUserId, targetUserId);
 
     if (followState !== "Following") {
-      return { success: false, message: "You cannot unfollow user whom you not following", currentState: "Following" };
+      return { success: false, message: "You cannot unfollow user whom you not following", currentState: FollowState.FOLLOWING };
     }
 
     targetUser.followers = targetUser.followers.filter(id => !id.equals(currentIdObj));
@@ -202,7 +203,7 @@ export const unfollowUser = async (
     await session.commitTransaction();
     session.endSession();
 
-    return { success: true, currentState: "Follow" };
+    return { success: true, currentState: FollowState.FOLLOW };
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
@@ -244,7 +245,7 @@ export const rejectFollowRequest = async (
     await session.commitTransaction();
     session.endSession();
 
-    return { success: true, currentState: "Follow" };
+    return { success: true, currentState: FollowState.FOLLOW };
   } catch (err) {
     await session.abortTransaction();
     session.endSession();

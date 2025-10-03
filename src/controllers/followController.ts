@@ -3,7 +3,8 @@ import * as followService from "../services/followService";
 import { AppError } from "../utils/errorUtils";
 import { notificationDTO } from "../dtos/notificationDTO";
 import { triggerNotification } from "../services/notificationService";
-
+import * as conversationService from "../services/conversationService";
+import { FollowState } from "../constants/common";
 
 /**
  * Get the follow state between current user and target user
@@ -40,14 +41,20 @@ export const followUser: RequestHandler = async (req, res, next) => {
 
         const result = await followService.followUser(currentUserId, targetUserId);
 
-        if(result.success && result?.isPrivate){
+        if (result.success && result?.isPrivate) {
             const notificationData: notificationDTO = {
                 type: "followRequest",
                 userId: targetUserId,
                 senderUserId: currentUserId
-              } 
-              await triggerNotification(notificationData);
-        }     
+            }
+            await triggerNotification(notificationData);
+        }
+
+        if (result.success && !result?.isPrivate) {
+            const conversation = await conversationService.createConversation(currentUserId, targetUserId);
+
+            console.log(conversation);
+        }
 
         return res.status(result.success ? 200 : 400).json(result);
     } catch (err) {
@@ -65,12 +72,17 @@ export const unfollowUser: RequestHandler = async (req, res, next) => {
     try {
         const { currentUserId, targetUserId } = req.body;
 
-
         if (!currentUserId || !targetUserId) {
             return res.status(400).json({ message: "Missing required fields" });
         }
 
         const result = await followService.unfollowUser(currentUserId, targetUserId);
+        
+        const followState = await followService.getFollowState(currentUserId, targetUserId);
+        if( followState !== FollowState.FOLLOWING && followState !== FollowState.FOLLOW_BACK ) {
+            const deleteConversationResult = await conversationService.findAndDeleteConversation(currentUserId,targetUserId);
+            console.log("delete conversaion  result:",deleteConversationResult)
+        }
         return res.status(result.success ? 200 : 400).json(result);
     } catch (err) {
         console.error(err);
@@ -93,14 +105,17 @@ export const acceptFollowRequest: RequestHandler = async (req, res, next) => {
 
         const result = await followService.acceptFollowRequest(requesterUserId, targetUserId);
 
-        if(result.success){
+        if (result.success) {
             const notificationData: notificationDTO = {
                 type: "acceptedRequest",
                 userId: requesterUserId,
                 senderUserId: targetUserId
-              } 
-              await triggerNotification(notificationData);
+            }
+            await triggerNotification(notificationData);
         }
+
+        const conversation = await conversationService.createConversation(requesterUserId, targetUserId);
+        console.log(conversation);
 
         return res.status(result.success ? 200 : 400).json(result);
     } catch (err) {
@@ -138,7 +153,7 @@ export const rejectFollowRequest: RequestHandler = async (req, res, next) => {
 export const cancelFollowRequest: RequestHandler = async (req, res, next) => {
     try {
         const { currentUserId, targetUserId } = req.body;
-        
+
         if (!currentUserId || !targetUserId) {
             return res.status(400).json({ message: "Missing required fields" });
         }
@@ -206,7 +221,7 @@ export const getFollowersList: RequestHandler = async (req, res, next) => {
 export const getFollowingList: RequestHandler = async (req, res, next) => {
     try {
         const { userId }: any = req.query;
-        
+
         if (!userId) {
             return res.status(400).json({ message: "Missing required fields" });
         }

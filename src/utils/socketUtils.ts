@@ -19,7 +19,7 @@ export const getIO = () => {
   return io;
 };
 
-// utils/onlineUsers.ts
+
 export const onlineUsers = new Map<string, Set<string>>();
 
 export const isUserOnline = (userId: string): boolean => {
