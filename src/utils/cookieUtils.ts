@@ -18,7 +18,8 @@ export const setCookie = (
         httpOnly: options.httpOnly ?? true,
         secure: false,
         // sameSite: options.sameSite ?? "strict",
-        // maxAge: options.maxAge ?? 60 * 60 * 1000, // 1h default
+        maxAge: options.maxAge ?? 8 * 60 * 60 * 1000, // 1h default
+        // maxAge: options.maxAge ?? 60 * 1000, // 1h default
         // path: options.path ?? "/",
     });
 };

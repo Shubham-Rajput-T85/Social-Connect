@@ -30,7 +30,7 @@ export const signup: RequestHandler = async (req, res, next) => {
     });
   }
   catch (err) {
-    console.log(err);
+    console.log("error: ",err);
     console.error(err);
     next(err);
   }

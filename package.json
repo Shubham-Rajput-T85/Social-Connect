@@ -10,6 +10,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@types/cookie": "^0.6.0",
     "@types/express-validator": "^2.20.33",
     "@types/fluent-ffmpeg": "^2.1.27",
     "bcrypt": "^6.0.0",

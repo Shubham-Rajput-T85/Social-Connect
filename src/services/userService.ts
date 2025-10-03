@@ -1,9 +1,9 @@
-import mongoose, { Types } from "mongoose";
+import mongoose from "mongoose";
 import { userDetailDTO } from "../dtos/user/userDetailDTO";
 import User from "../models/user"
 
 export const findUserById = async (userId: string) => {
-  const user = await User.findOne({ _id: userId }).select("_id name username bio profileUrl email isPrivate");
+  const user = await User.findOne({ _id: userId }).select("_id name username bio profileUrl email isPrivate postCount followersCount followingCount");
   return user;
 }
 

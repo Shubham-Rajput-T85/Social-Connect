@@ -6,10 +6,12 @@ import cookieParser from "cookie-parser";
 import path from "path";
 
 import { errorHandler } from "./middleware/errorHandler";
-import authRoutes from "./routes/auth";
-import postRoutes from "./routes/post";
-import userRoutes from "./routes/user";
-import notificationRoutes from "./routes/notification";
+import authRoutes from "./routes/auth.route";
+import postRoutes from "./routes/post.route";
+import userRoutes from "./routes/user.route";
+import notificationRoutes from "./routes/notification.route";
+import conversationRoutes from "./routes/conversation.route";
+import messageRoutes from "./routes/message.route";
 
 dotenv.config();
 
@@ -40,6 +42,8 @@ app.use("/auth", authRoutes);
 app.use("/posts", postRoutes);
 app.use("/user", userRoutes);
 app.use("/notification", notificationRoutes);
+app.use("/conversation", conversationRoutes);
+app.use("/messages", messageRoutes);
 
 // ----------------------------
 // Error Handler
