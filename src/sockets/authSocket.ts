@@ -43,7 +43,9 @@ export default function registerAuthSocket(io: Server) {
     // When a user registers themselves (logs in on this socket)
     socket.on("register", () => {
       // Add socket.id to this user's set
+      console.log("register event called:");
       const userId = user.userId;
+      console.log("userId:",userId);
       if (!onlineUsers.has(userId)) {
         onlineUsers.set(userId, new Set());
       }
@@ -51,13 +53,15 @@ export default function registerAuthSocket(io: Server) {
 
       socket.join(userId); // For sending notifications/messages directly
       console.log(`User ${userId} connected. Active sockets:`, onlineUsers.get(userId));
-      
+      console.log("oneline user:",onlineUsers);
       // Notify other users that this user is online
       io.emit("userOnline", { userId });
     });
 
     socket.on("logout", () => {
       const userId = user.userId;
+      console.log("at logout event");
+      console.log("userId:", userId);
       if (onlineUsers.has(userId)) {
         const sockets = onlineUsers.get(userId);
         if (sockets) sockets.delete(socket.id);
@@ -66,17 +70,21 @@ export default function registerAuthSocket(io: Server) {
           onlineUsers.delete(userId);
           io.emit("userOffline", { userId });
         }
+        console.log("online users: ", onlineUsers);
       }
+      socket.disconnect();
     });
 
     socket.on("getOnlineUsers", (callback: (users: string[]) => void) => {
+      console.log("at getOnlineUser event");
+      console.log("online users: ", onlineUsers);
       callback(Array.from(onlineUsers.keys()));
     });
 
     // When a socket disconnects
     socket.on("disconnect", () => {
       console.log("Socket disconnected:", socket.id);
-      console.log(onlineUsers);
+      console.log("online users: ", onlineUsers);
       // Find which user this socket belonged to
       for (const [userId, sockets] of onlineUsers.entries()) {
         if (sockets.has(socket.id)) {

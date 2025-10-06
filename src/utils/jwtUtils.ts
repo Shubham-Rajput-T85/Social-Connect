@@ -11,7 +11,7 @@ export const generateToken = (user: IUser) => {
     return jwt.sign({
         email: user.email,
         userId: user._id.toString(),
-    },secret_key, { expiresIn: '1h'} );
+    },secret_key, { expiresIn: '8h'} );
 }
 
 export const verifyToken = (token: string) => {
