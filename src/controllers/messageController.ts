@@ -1,5 +1,6 @@
 import { RequestHandler } from "express";
 import * as messageService from "../services/messageService";
+import { onlineUsers } from "../utils/socketUtils";
 
 export const getMessages: RequestHandler = async (req: any, res, next) => {
   try {
@@ -39,7 +40,8 @@ export const updateMessageStatus: RequestHandler = async (req: any, res, next) =
     const { messageId } = req.params;
     const { status } = req.body;
     const userId = req.user.userId;
-
+    console.log("called update message status");
+    
     const updatedMessage = await messageService.updateMessageStatus(messageId, userId, status);
 
     res.json({ success: true, message: updatedMessage });

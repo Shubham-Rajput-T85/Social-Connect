@@ -49,7 +49,7 @@ export const login: RequestHandler = async (req, res, next) => {
     }
 
     const response = await authService.login(res, loginObj);
-    console.log(response);
+    console.log("login response:",response);
     return res.status(200).json(response);
   }
   catch (err) {
