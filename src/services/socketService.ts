@@ -4,7 +4,6 @@ import { getIO } from "../utils/socketUtils";
 export const emitNotification = (toUserId: string, notification: any) => {
   const io = getIO();
   io.to(notification.userId.toString()).emit("newNotification", notification);
-
   console.log("Backend emitted to room:",notification.userId.toString(), toUserId);
 };
 
@@ -16,3 +15,18 @@ export const emitUpdateMessageStatus = (updatedMessage: any, status: MessageStat
     userId,
   });
 };
+
+export const emitNewMessage = (conversationId: string, newMessage: any) => {
+  const io = getIO();
+  io.to(conversationId).emit("newMessage", newMessage);
+}
+
+export const emitUserOnline = (userId: string) => {
+  const io = getIO();
+  io.emit("userOnline", { userId });
+}
+
+export const emitUserOffline = (userId: string) => {
+  const io = getIO();
+  io.emit("userOffline", { userId });
+}
