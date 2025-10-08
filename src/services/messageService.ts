@@ -1,7 +1,8 @@
 import { MessageStatus } from "../interfaces/IMessage";
 import Conversation from "../models/conversation";
 import Message from "../models/message";
-import { getIO, isUserOnline } from "../utils/socketUtils";
+import { isUserOnline } from "../utils/socketUtils";
+import { emitNewMessage, emitUpdateMessageStatus } from "./socketService";
 
 /**
  * Fetch messages with pagination
@@ -50,12 +51,8 @@ export const sendMessage = async (conversationId: string, sender: string, text: 
 
   await newMessage.populate("sender", "_id name username profileUrl");
 
-  // 7️⃣ Update conversation last activity
-  await Conversation.findByIdAndUpdate(conversationId, { updatedAt: new Date() });
-
   // 8️⃣ Emit real-time event
-  const io = getIO();
-  io.to(conversationId).emit("newMessage", newMessage);
+  emitNewMessage(conversationId, newMessage);
 
   return newMessage;
 };
@@ -71,20 +68,16 @@ export const updateMessageStatus = async (messageId: string, userId: string, sta
     { $addToSet: { [updateField]: userId }, status },
     { new: true }
   );
-  
+
   if (updatedMessage) {
-    getIO().to(updatedMessage.conversationId.toString()).emit("messageStatusUpdated", {
-      messageId,
-      status,
-      userId,
-    });
+    emitUpdateMessageStatus(updatedMessage, status, userId);
   }
 
   return updatedMessage;
 };
 
 
-export const markMessagesDelivered = async (io: any, userId: string) => {
+export const markMessagesDelivered = async (userId: string) => {
   try {
     // 1️⃣ Get all conversation IDs where this user is a participant
     const conversations = await Conversation.find({ participants: userId }, "_id").lean();
@@ -117,13 +110,95 @@ export const markMessagesDelivered = async (io: any, userId: string) => {
     }).lean();
 
     for (const msg of updatedMessages) {
-      io.to(msg.conversationId.toString()).emit("messageStatusUpdated", {
-        messageId: msg._id,
-        status: MessageStatus.DELIVERED,
-        userId,
-      });
+      emitUpdateMessageStatus(msg, MessageStatus.DELIVERED, userId);
     }
   } catch (err) {
     console.error("Error marking messages as delivered:", err);
   }
+};
+
+
+// export const markMessageStatusSeenForConversation = async (conversationId: string, userId: string, status: MessageStatus.SEEN) => {
+//   const messages: any = await Message.find({ conversationId, status: MessageStatus.DELIVERED, sender: { $ne: userId } });
+
+//   for (const msg of messages) {
+//     msg.status = status;
+
+//     if (status === MessageStatus.SEEN) msg.seenBy.push(userId);
+
+//     await msg.save();
+//     emitUpdateMessageStatus(msg, status, userId );
+//   }
+// };
+
+export const markMessageStatusSeenForConversation = async (conversationId: string, userId: string) => {
+  console.time(`markMessageStatusSeenForConversation:${conversationId}`); // ⏱ start timer
+
+  const messages: any = await Message.find({ conversationId, sender: { $ne: userId } });
+
+  const conv: any = await Conversation.findById(conversationId).lean();
+
+  await Promise.all(messages.map(async (msg: any) => {
+    if (!msg.seenBy.includes(userId)) msg.seenBy.push(userId);
+
+    const allSeen = conv.participants
+      .filter((p: any) => p.toString() !== msg.sender.toString())
+      .every((p: any) => msg.seenBy.map((id: any) => id.toString()).includes(p.toString()));
+
+    if (allSeen) msg.status = MessageStatus.SEEN;
+
+    await msg.save();
+    emitUpdateMessageStatus(msg, MessageStatus.SEEN, userId);
+  }));
+
+  console.timeEnd(`markMessageStatusSeenForConversation:${conversationId}`); // ⏹ end timer
+};
+
+
+/**
+ * Edit a message text
+ */
+export const editMessage = async (messageId: string, editorId: string, newText: string) => {
+  // 1️⃣ Fetch the message
+  const message = await Message.findById(messageId);
+  if (!message) throw new Error("Message not found");
+
+  // 2️⃣ Only sender can edit their message
+  if (message.sender.toString() !== editorId.toString()) {
+    throw new Error("Not authorized to edit this message");
+  }
+
+  // 3️⃣ Update message text and optional edited timestamp
+  message.text = newText;
+
+  // 4️⃣ Fetch conversation participants
+  const conv = await Conversation.findById(message.conversationId).lean();
+  if (!conv) throw new Error("Conversation not found");
+
+  const otherParticipants = conv.participants.filter(
+    (p) => p.toString() !== editorId.toString()
+  );
+
+  // 5️⃣ Determine which participants are online
+  const deliveredToNow = otherParticipants.filter((p) => isUserOnline(p.toString()));
+
+  // 6️⃣ Reset delivery and seen tracking for others
+  message.deliveredTo = deliveredToNow;
+  message.seenBy = message.seenBy?.filter((id) =>
+    !otherParticipants.map((p) => p.toString()).includes(id.toString())
+  );
+
+  // 7️⃣ Update message status
+  message.status = deliveredToNow.length === otherParticipants.length
+    ? MessageStatus.DELIVERED
+    : MessageStatus.SENT;
+
+  // 8️⃣ Save the updated message
+  await message.save(); // ✅ updatedAt auto-updated due to timestamps:true
+
+  // 9️⃣ Emit real-time events
+  emitNewMessage(message.conversationId.toString(), message);
+  emitUpdateMessageStatus(message, message.status, editorId);
+
+  return message;
 };
