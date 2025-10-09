@@ -16,6 +16,11 @@ export const emitUpdateMessageStatus = (updatedMessage: any, status: MessageStat
   });
 };
 
+export const emitEditMessage = (message: any) => {
+  const io = getIO();
+  io.to(message.conversationId.toString()).emit('messageUpdated', message);
+}
+
 export const emitNewMessage = (conversationId: string, newMessage: any) => {
   const io = getIO();
   io.to(conversationId).emit("newMessage", newMessage);

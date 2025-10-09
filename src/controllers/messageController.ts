@@ -4,8 +4,8 @@ import * as messageService from "../services/messageService";
 export const getMessages: RequestHandler = async (req: any, res, next) => {
   try {
     const { conversationId } = req.params;
-    const { page = 1, limit = 20 } = req.query;
-
+    const { page, limit } = req.query;
+    console.log("page: limit: ",page,limit);
     const messages = await messageService.getMessages(conversationId, Number(page), Number(limit));
 
     res.json({

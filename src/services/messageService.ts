@@ -2,7 +2,7 @@ import { MessageStatus } from "../interfaces/IMessage";
 import Conversation from "../models/conversation";
 import Message from "../models/message";
 import { isUserOnline } from "../utils/socketUtils";
-import { emitNewMessage, emitUpdateMessageStatus } from "./socketService";
+import { emitEditMessage, emitNewMessage, emitUpdateMessageStatus } from "./socketService";
 
 /**
  * Fetch messages with pagination
@@ -196,9 +196,11 @@ export const editMessage = async (messageId: string, editorId: string, newText: 
   // 8️⃣ Save the updated message
   await message.save(); // ✅ updatedAt auto-updated due to timestamps:true
 
+  await message.populate('sender', '_id name username profileUrl');
+
   // 9️⃣ Emit real-time events
-  emitNewMessage(message.conversationId.toString(), message);
   emitUpdateMessageStatus(message, message.status, editorId);
+  emitEditMessage(message);
 
   return message;
 };

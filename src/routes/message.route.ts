@@ -16,4 +16,8 @@ router.post("/:conversationId", isAuthenticated, messageController.sendMessage);
 // PATCH /api/messages/status/:messageId
 router.patch("/status/:messageId", isAuthenticated, messageController.updateMessageStatus);
 
+// Update message text 
+// PATCH /api/messages/edit/:messageId
+router.patch("/edit/:messageId", isAuthenticated, messageController.editMessage);
+
 export default router;
