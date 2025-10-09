@@ -9,15 +9,19 @@ const router = Router();
 router.get("/:conversationId", isAuthenticated, messageController.getMessages);
 
 // Send a new message in a conversation
-// POST /api/messages/:conversationId
+// POST /messages/:conversationId
 router.post("/:conversationId", isAuthenticated, messageController.sendMessage);
 
 // Update message status (read/delivered/etc.)
-// PATCH /api/messages/status/:messageId
+// PATCH /messages/status/:messageId
 router.patch("/status/:messageId", isAuthenticated, messageController.updateMessageStatus);
 
 // Update message text 
-// PATCH /api/messages/edit/:messageId
+// PATCH /messages/edit/:messageId
 router.patch("/edit/:messageId", isAuthenticated, messageController.editMessage);
+
+// delete message
+// DELETE /messages/delete/:messageId
+router.delete("/delete/:messageId", isAuthenticated, messageController.deleteMessage);
 
 export default router;

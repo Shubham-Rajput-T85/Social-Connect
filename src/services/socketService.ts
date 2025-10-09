@@ -35,3 +35,12 @@ export const emitUserOffline = (userId: string) => {
   const io = getIO();
   io.emit("userOffline", { userId });
 }
+
+export const emitMessageDeleted = (message: any) => {
+  const io = getIO();
+  io.to(message.conversationId.toString()).emit("messageDeleted", {
+    messageId: message._id,
+    conversationId: message.conversationId,
+    sender: message.sender,
+  });
+};

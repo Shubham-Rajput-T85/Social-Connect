@@ -2,7 +2,7 @@ import { MessageStatus } from "../interfaces/IMessage";
 import Conversation from "../models/conversation";
 import Message from "../models/message";
 import { isUserOnline } from "../utils/socketUtils";
-import { emitEditMessage, emitNewMessage, emitUpdateMessageStatus } from "./socketService";
+import { emitEditMessage, emitMessageDeleted, emitNewMessage, emitUpdateMessageStatus } from "./socketService";
 
 /**
  * Fetch messages with pagination
@@ -204,4 +204,29 @@ export const editMessage = async (messageId: string, editorId: string, newText: 
   emitEditMessage(message);
 
   return message;
+};
+
+/**
+ * Delete a message
+ */
+export const deleteMessage = async (messageId: string, deleterId: string) => {
+  const message = await Message.findById(messageId);
+  if (!message) throw new Error("Message not found");
+
+  // Only the sender can delete (for now)
+  if (message.sender.toString() !== deleterId.toString()) {
+    throw new Error("Not authorized to delete this message");
+  }
+
+  // ✅ Emit delete event BEFORE permanent deletion
+  emitMessageDeleted({
+    _id: message._id,
+    conversationId: message.conversationId,
+    sender: message.sender,
+  });
+
+  // ✅ Permanently delete the message from DB
+  await message.deleteOne();
+
+  return { success: true };
 };

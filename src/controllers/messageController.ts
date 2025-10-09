@@ -64,3 +64,17 @@ export const editMessage: RequestHandler = async (req: any, res, next) => {
     next(err);
   }
 };
+
+export const deleteMessage: RequestHandler = async (req: any, res, next) => {
+  try {
+    const deleterId = req.user.userId;
+    const { messageId } = req.params;
+
+    const deletedMsg = await messageService.deleteMessage(messageId, deleterId);
+
+    res.json({ success: true, message: deletedMsg });
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
