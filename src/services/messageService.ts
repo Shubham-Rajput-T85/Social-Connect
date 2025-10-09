@@ -170,6 +170,7 @@ export const editMessage = async (messageId: string, editorId: string, newText: 
 
   // 3️⃣ Update message text and optional edited timestamp
   message.text = newText;
+  message.editedAt = new Date();
 
   // 4️⃣ Fetch conversation participants
   const conv = await Conversation.findById(message.conversationId).lean();
