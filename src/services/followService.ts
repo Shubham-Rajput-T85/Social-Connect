@@ -281,3 +281,25 @@ export const getFollowingList = async (userId: string) => {
     .select("following followingCount");
 };
 
+export const getMutualFollowers = async (currentUserId: string, profileUserId: string) => {
+  // Fetch followers of both users
+  const [currentUser, profileUser] = await Promise.all([
+    User.findById(currentUserId).populate("followers", "_id username name profileUrl isPrivate"),
+    User.findById(profileUserId).populate("followers", "_id username name profileUrl isPrivate"),
+  ]);
+
+  if (!currentUser || !profileUser) {
+    return [];
+  }
+
+  const currentUserFollowerIds = currentUser.followers.map(f => f._id.toString());
+  const profileUserFollowerIds = profileUser.followers.map(f => f._id.toString());
+
+  // Find intersection of followers
+  const mutualIds = currentUserFollowerIds.filter(id => profileUserFollowerIds.includes(id));
+
+  // Filter the already populated followers
+  const mutualUsers = currentUser.followers.filter(f => mutualIds.includes(f._id.toString()));
+
+  return mutualUsers; // Each object has _id, username, name, profileUrl, isPrivate
+};
