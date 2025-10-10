@@ -44,3 +44,9 @@ export const emitMessageDeleted = (message: any) => {
     sender: message.sender,
   });
 };
+
+export const emitMessageNotification = (toUserId: string, notification: any) => {
+  const io = getIO();
+  io.to(toUserId).emit("newMessageNotification", notification);
+  console.log("Chat message notification emitted to:", toUserId);
+};
