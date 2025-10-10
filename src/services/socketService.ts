@@ -16,6 +16,11 @@ export const emitUpdateMessageStatus = (updatedMessage: any, status: MessageStat
   });
 };
 
+export const emitEditMessage = (message: any) => {
+  const io = getIO();
+  io.to(message.conversationId.toString()).emit('messageUpdated', message);
+}
+
 export const emitNewMessage = (conversationId: string, newMessage: any) => {
   const io = getIO();
   io.to(conversationId).emit("newMessage", newMessage);
@@ -30,3 +35,18 @@ export const emitUserOffline = (userId: string) => {
   const io = getIO();
   io.emit("userOffline", { userId });
 }
+
+export const emitMessageDeleted = (message: any) => {
+  const io = getIO();
+  io.to(message.conversationId.toString()).emit("messageDeleted", {
+    messageId: message._id,
+    conversationId: message.conversationId,
+    sender: message.sender,
+  });
+};
+
+export const emitMessageNotification = (toUserId: string, notification: any) => {
+  const io = getIO();
+  io.to(toUserId).emit("newMessageNotification", notification);
+  console.log("Chat message notification emitted to:", toUserId);
+};

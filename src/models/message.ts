@@ -36,6 +36,10 @@ const messageSchema = new Schema<IMessage>(
         ref: "User",
       },
     ],
+    editedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

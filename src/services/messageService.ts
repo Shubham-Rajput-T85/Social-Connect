@@ -1,8 +1,8 @@
 import { MessageStatus } from "../interfaces/IMessage";
 import Conversation from "../models/conversation";
 import Message from "../models/message";
-import { isUserOnline } from "../utils/socketUtils";
-import { emitNewMessage, emitUpdateMessageStatus } from "./socketService";
+import { getIO, isUserOnline, onlineUsers } from "../utils/socketUtils";
+import { emitEditMessage, emitMessageDeleted, emitMessageNotification, emitNewMessage, emitUpdateMessageStatus } from "./socketService";
 
 /**
  * Fetch messages with pagination
@@ -22,25 +22,23 @@ export const getMessages = async (conversationId: string, page: number, limit: n
  * Send a new message
  */
 export const sendMessage = async (conversationId: string, sender: string, text: string) => {
-  // 1️⃣ Get the conversation participants
+  // 1️⃣ Fetch conversation
   const conversation = await Conversation.findById(conversationId).lean();
   if (!conversation) throw new Error("Conversation not found");
 
-  // 2️⃣ Exclude the sender
+  // 2️⃣ Exclude sender
   const receiverIds = conversation.participants.filter(
     (id) => id.toString() !== sender.toString()
   );
 
-  // 3️⃣ Check online status of all receivers
-  const allOnline = receiverIds.length > 0 && receiverIds.every((id) => isUserOnline(id.toString()));
+  // 3️⃣ Check who’s online
+  const allOnline =
+    receiverIds.length > 0 && receiverIds.every((id) => isUserOnline(id.toString()));
+  const deliveredTo = receiverIds.filter((id) => isUserOnline(id.toString()));
 
-  // 4️⃣ Set message status based on online presence
   const status = allOnline ? MessageStatus.DELIVERED : MessageStatus.SENT;
 
-  // 5️⃣ Optionally track who received it instantly
-  const deliveredTo = allOnline ? receiverIds : receiverIds.filter((id) => isUserOnline(id.toString()));
-
-  // 6️⃣ Create message
+  // 4️⃣ Create the message
   const newMessage = await Message.create({
     conversationId,
     sender,
@@ -51,8 +49,32 @@ export const sendMessage = async (conversationId: string, sender: string, text: 
 
   await newMessage.populate("sender", "_id name username profileUrl");
 
-  // 8️⃣ Emit real-time event
+  // 5️⃣ Emit to the conversation room
   emitNewMessage(conversationId, newMessage);
+
+  // 6️⃣ Find which online users are *not* in the active chat room
+  const io = getIO();
+  const roomSockets = io.sockets.adapter.rooms.get(conversationId) || new Set();
+
+  const onlineNotInRoom = receiverIds.filter((userId) => {
+    if (!isUserOnline(userId.toString())) return false;
+
+    const sockets = onlineUsers.get(userId.toString());
+    if (!sockets || sockets.size === 0) return false;
+
+    // ✅ Check if any of the user's sockets are in the chat room
+    const isInRoom = Array.from(sockets).some((socketId) => roomSockets.has(socketId));
+    return !isInRoom;
+  });
+
+  console.log("onlineNotInRoom:", onlineNotInRoom);
+
+  // 7️⃣ Emit notifications only to those not viewing this conversation
+  onlineNotInRoom.forEach((userId) => {
+    emitMessageNotification(userId.toString(), {
+      conversationId,
+    });
+  });
 
   return newMessage;
 };
@@ -170,6 +192,7 @@ export const editMessage = async (messageId: string, editorId: string, newText: 
 
   // 3️⃣ Update message text and optional edited timestamp
   message.text = newText;
+  message.editedAt = new Date();
 
   // 4️⃣ Fetch conversation participants
   const conv = await Conversation.findById(message.conversationId).lean();
@@ -196,9 +219,36 @@ export const editMessage = async (messageId: string, editorId: string, newText: 
   // 8️⃣ Save the updated message
   await message.save(); // ✅ updatedAt auto-updated due to timestamps:true
 
+  await message.populate('sender', '_id name username profileUrl');
+
   // 9️⃣ Emit real-time events
-  emitNewMessage(message.conversationId.toString(), message);
   emitUpdateMessageStatus(message, message.status, editorId);
+  emitEditMessage(message);
 
   return message;
+};
+
+/**
+ * Delete a message
+ */
+export const deleteMessage = async (messageId: string, deleterId: string) => {
+  const message = await Message.findById(messageId);
+  if (!message) throw new Error("Message not found");
+
+  // Only the sender can delete (for now)
+  if (message.sender.toString() !== deleterId.toString()) {
+    throw new Error("Not authorized to delete this message");
+  }
+
+  // ✅ Emit delete event BEFORE permanent deletion
+  emitMessageDeleted({
+    _id: message._id,
+    conversationId: message.conversationId,
+    sender: message.sender,
+  });
+
+  // ✅ Permanently delete the message from DB
+  await message.deleteOne();
+
+  return { success: true };
 };

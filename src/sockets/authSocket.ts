@@ -3,7 +3,6 @@ import { Server, Socket } from "socket.io";
 import { onlineUsers } from "../utils/socketUtils";
 import cookie from 'cookie';
 import { verifyToken } from "../utils/jwtUtils";
-import { MessageStatus } from "../interfaces/IMessage";
 import { markMessagesDelivered, markMessageStatusSeenForConversation } from "../services/messageService";
 import { emitUserOffline, emitUserOnline } from "../services/socketService";
 

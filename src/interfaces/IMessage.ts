@@ -15,4 +15,5 @@ export interface IMessage extends Document {
     deliveredTo?: mongoose.Types.ObjectId[];
     seenBy?: mongoose.Types.ObjectId[];
     updatedAt?: Date;
+    editedAt?: Date;
 }

@@ -4,8 +4,8 @@ import * as messageService from "../services/messageService";
 export const getMessages: RequestHandler = async (req: any, res, next) => {
   try {
     const { conversationId } = req.params;
-    const { page = 1, limit = 20 } = req.query;
-
+    const { page, limit } = req.query;
+    console.log("page: limit: ",page,limit);
     const messages = await messageService.getMessages(conversationId, Number(page), Number(limit));
 
     res.json({
@@ -59,6 +59,20 @@ export const editMessage: RequestHandler = async (req: any, res, next) => {
     const updatedMessage = await messageService.editMessage(messageId, editorId, text);
 
     res.json({ success: true, message: updatedMessage });
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
+
+export const deleteMessage: RequestHandler = async (req: any, res, next) => {
+  try {
+    const deleterId = req.user.userId;
+    const { messageId } = req.params;
+
+    const deletedMsg = await messageService.deleteMessage(messageId, deleterId);
+
+    res.json({ success: true, message: deletedMsg });
   } catch (err) {
     console.error(err);
     next(err);
