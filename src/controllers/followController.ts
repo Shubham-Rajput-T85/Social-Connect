@@ -77,11 +77,11 @@ export const unfollowUser: RequestHandler = async (req, res, next) => {
         }
 
         const result = await followService.unfollowUser(currentUserId, targetUserId);
-        
+
         const followState = await followService.getFollowState(currentUserId, targetUserId);
-        if( followState !== FollowState.FOLLOWING && followState !== FollowState.FOLLOW_BACK ) {
-            const deleteConversationResult = await conversationService.findAndDeleteConversation(currentUserId,targetUserId);
-            console.log("delete conversaion  result:",deleteConversationResult)
+        if (followState !== FollowState.FOLLOWING && followState !== FollowState.FOLLOW_BACK) {
+            const deleteConversationResult = await conversationService.findAndDeleteConversation(currentUserId, targetUserId);
+            console.log("delete conversaion  result:", deleteConversationResult)
         }
         return res.status(result.success ? 200 : 400).json(result);
     } catch (err) {
@@ -234,5 +234,28 @@ export const getFollowingList: RequestHandler = async (req, res, next) => {
     } catch (err) {
         console.error(err);
         next(err);
+    }
+};
+
+/**
+ * Gives list of followed by user
+ * GET /user/getFollowedBy
+ * Param: { profileUserId }
+ */
+export const getMutualFollowers: RequestHandler = async (req: any, res, next) => {
+    try {
+        const { profileUserId } = req.query;
+        const currentUserId = req.user.userId;
+
+        if (!currentUserId || !profileUserId) {
+            return res.status(400).json({ message: "Both currentUserId and profileUserId are required" });
+        }
+
+        const mutualFollowers = await followService.getMutualFollowers(currentUserId, profileUserId);
+
+        return res.status(200).json({ mutualFollowers });
+    } catch (err) {
+        console.error(err);
+        next(new AppError("Failed to fetch mutual followers", 500));
     }
 };

@@ -52,4 +52,7 @@ router.get("/getFollowing", isAuthenticated, followController.getFollowingList);
 // get list of friend suggestion
 router.get("/suggestedFriends", isAuthenticated, userController.getSuggestedFriends);
 
+// get list of followed by user
+router.get("/getFollowedBy", isAuthenticated, followController.getMutualFollowers);
+
 export default router;
