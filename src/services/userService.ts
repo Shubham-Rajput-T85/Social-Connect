@@ -1,6 +1,12 @@
 import mongoose from "mongoose";
 import { userDetailDTO } from "../dtos/user/userDetailDTO";
 import User from "../models/user"
+import { AppError } from "../utils/errorUtils";
+import Post from "../models/post";
+import Comments from "../models/comments";
+import Like from "../models/like";
+import Conversation from "../models/conversation";
+import Notification from "../models/notification";
 
 export const findUserById = async (userId: string) => {
   const user = await User.findOne({ _id: userId }).select("_id name username bio profileUrl email isPrivate postCount followersCount followingCount");
@@ -35,15 +41,6 @@ export const updateUserDetails = async (userDetail: userDetailDTO) => {
     return { success: false, message: "failed to update user details" };
   }
   return { success: true, user: await findUserById(userDetail.id) };
-}
-
-export const deleteUser = async (userId: string) => {
-  const result = await User.deleteOne({ _id: userId });
-  console.log(result);
-  if (!result) {
-    return { success: false, message: "failed to update user details" };
-  }
-  return { success: true };
 }
 
 export const searchUsers = async (searchQuery: string, currentUserId: string) => {
@@ -167,3 +164,79 @@ export const togglePrivateState = async (userId: string) => {
 
   return updatedUser;
 }
+
+export const deleteUser = async (userId: string) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const user = await User.findById(userId).session(session);
+    if (!user) throw new AppError("User not found", 404);
+
+    // 1️⃣ Remove this user from all other users’ follow/following/request lists
+    await Promise.all([
+      User.updateMany(
+        { following: user._id },
+        { $pull: { following: user._id }, $inc: { followingCount: -1 } },
+        { session }
+      ),
+      User.updateMany(
+        { followers: user._id },
+        { $pull: { followers: user._id }, $inc: { followersCount: -1 } },
+        { session }
+      ),
+      User.updateMany(
+        { followRequest: user._id },
+        { $pull: { followRequest: user._id }, $inc: { followRequestCount: -1 } },
+        { session }
+      )
+    ]);
+
+    // 2️⃣ Delete all posts created by this user
+    const userPosts = await Post.find({ userId }).session(session);
+    const postIds = userPosts.map(p => p._id);
+
+    await Post.deleteMany({ userId }).session(session);
+
+    // 3️⃣ Delete likes by or on user's posts
+    await Like.deleteMany({
+      $or: [{ userId }, { postId: { $in: postIds } }],
+    }).session(session);
+
+    // 4️⃣ Delete comments by or on user's posts
+    await Comments.deleteMany({
+      $or: [{ userId }, { postId: { $in: postIds } }],
+    }).session(session);
+
+    // 5️⃣ Delete notifications created by or sent to this user
+    await Notification.deleteMany({
+      $or: [{ userId }, { senderUserId: userId }],
+    }).session(session);
+
+    // 6️⃣ Remove user from all conversations
+    await Conversation.updateMany(
+      { participants: user._id },
+      { $pull: { participants: user._id } },
+      { session }
+    );
+
+    // Optionally remove empty conversations
+    await Conversation.deleteMany({ participants: { $size: 0 } }).session(session);
+
+    // 7️⃣ Finally delete user account
+    await User.deleteOne({ _id: userId }).session(session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return { success: true, message: "User account deleted successfully" };
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error("❌ Error deleting user:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to delete user",
+    };
+  }
+};
