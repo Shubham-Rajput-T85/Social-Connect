@@ -199,29 +199,84 @@ export const deleteUser = async (userId: string) => {
     await Post.deleteMany({ userId }).session(session);
 
     // 3️⃣ Delete likes by or on user's posts
-    await Like.deleteMany({
+    const likesByOrOnUser = await Like.find({
       $or: [{ userId }, { postId: { $in: postIds } }],
     }).session(session);
 
+    if (likesByOrOnUser.length > 0) {
+      // Group by postId to adjust like counts
+      const likeCountMap = new Map<string, number>();
+      for (const like of likesByOrOnUser) {
+        if (like.postId) {
+          likeCountMap.set(like.postId.toString(), (likeCountMap.get(like.postId.toString()) || 0) + 1);
+        }
+      }
+
+      // Decrement likeCount for affected posts
+      for (const [postId, count] of likeCountMap) {
+        await Post.updateOne(
+          { _id: postId },
+          { $inc: { likeCount: -count } },
+          { session }
+        );
+      }
+
+      // Now delete all likes
+      await Like.deleteMany({
+        $or: [{ userId }, { postId: { $in: postIds } }],
+      }).session(session);
+    }
+
     // 4️⃣ Delete comments by or on user's posts
-    await Comments.deleteMany({
+    const commentsByOrOnUser = await Comments.find({
       $or: [{ userId }, { postId: { $in: postIds } }],
     }).session(session);
+
+    if (commentsByOrOnUser.length > 0) {
+      // Group by postId to adjust comments counts
+      const commentCountMap = new Map<string, number>();
+      for (const comment of commentsByOrOnUser) {
+        if (comment.postId) {
+          commentCountMap.set(comment.postId.toString(), (commentCountMap.get(comment.postId.toString()) || 0) + 1);
+        }
+      }
+
+      // Decrement commentsCount for affected posts
+      for (const [postId, count] of commentCountMap) {
+        await Post.updateOne(
+          { _id: postId },
+          { $inc: { commentsCount: -count } },
+          { session }
+        );
+      }
+
+      // Now delete all comments
+      await Comments.deleteMany({
+        $or: [{ userId }, { postId: { $in: postIds } }],
+      }).session(session);
+    }
+
 
     // 5️⃣ Delete notifications created by or sent to this user
     await Notification.deleteMany({
       $or: [{ userId }, { senderUserId: userId }],
     }).session(session);
 
-    // 6️⃣ Remove user from all conversations
-    await Conversation.updateMany(
-      { participants: user._id },
-      { $pull: { participants: user._id } },
-      { session }
-    );
+    const conversations = await Conversation.find({ participants: user._id }).session(session);
 
-    // Optionally remove empty conversations
-    await Conversation.deleteMany({ participants: { $size: 0 } }).session(session);
+    for (const convo of conversations) {
+      if (convo.participants.length === 2) {
+        // If it's a 1-to-1 conversation, delete it entirely
+        await Conversation.deleteOne({ _id: convo._id }).session(session);
+      } else {
+        // If it's a group conversation, just remove the user
+        await Conversation.updateOne(
+          { _id: convo._id },
+          { $pull: { participants: user._id } },
+          { session }
+        );
+      }
+    }
 
     // 7️⃣ Finally delete user account
     await User.deleteOne({ _id: userId }).session(session);
@@ -233,7 +288,7 @@ export const deleteUser = async (userId: string) => {
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    console.error("❌ Error deleting user:", error);
+    console.error("Error deleting user:", error);
     return {
       success: false,
       message: error instanceof Error ? error.message : "Failed to delete user",
