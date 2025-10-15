@@ -1,9 +1,5 @@
 import { Document, Types } from "mongoose";
-
-interface IMedia {
-  url?: string;
-  type?: "image" | "video";
-}
+import { IMedia } from "../constants/common";
 
 export default interface IPost extends Document {
   userId: Types.ObjectId;
