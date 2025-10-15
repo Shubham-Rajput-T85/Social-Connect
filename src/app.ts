@@ -12,6 +12,7 @@ import userRoutes from "./routes/user.route";
 import notificationRoutes from "./routes/notification.route";
 import conversationRoutes from "./routes/conversation.route";
 import messageRoutes from "./routes/message.route";
+import storyRoutes from "./routes/story.route";
 
 dotenv.config();
 
@@ -44,6 +45,7 @@ app.use("/user", userRoutes);
 app.use("/notification", notificationRoutes);
 app.use("/conversation", conversationRoutes);
 app.use("/messages", messageRoutes);
+app.use("/story", storyRoutes);
 
 // ----------------------------
 // Error Handler
