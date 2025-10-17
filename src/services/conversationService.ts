@@ -27,6 +27,8 @@ export const getUserConversations = async (userId: string) => {
         seenBy: { $ne: userId },
       });
 
+      const now = new Date();
+
       return {
         conversationId: conv._id,
         user: {
@@ -35,6 +37,7 @@ export const getUserConversations = async (userId: string) => {
           name: otherUser.name,
           profileUrl: otherUser.profileUrl,
           online: isUserOnline(otherUser._id.toString()),
+          storyCount: otherUser.storyCount
         },
         lastMessage: lastMessage
           ? {
@@ -57,7 +60,7 @@ export const createConversation = async (
   participantId: string,
   type = "direct"
 ) => {
-  // 🔹 Check if a direct conversation already exists (order doesn’t matter)
+  // Check if a direct conversation already exists (order doesn’t matter)
   const existingConversation = await Conversation.findOne({
     participants: { $all: [userId, participantId] },
     type,
@@ -67,7 +70,7 @@ export const createConversation = async (
     return existingConversation; // Just return it if it exists
   }
 
-  // 🔹 Otherwise, create a new one
+  // Otherwise, create a new one
   const conversation = await Conversation.create({
     participants: [userId, participantId], // order doesn’t matter because we always query with $all
     type,

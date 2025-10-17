@@ -7,6 +7,7 @@ import Comments from "../models/comments";
 import Like from "../models/like";
 import Conversation from "../models/conversation";
 import Notification from "../models/notification";
+import Story from "../models/story";
 
 export const findUserById = async (userId: string) => {
   const user = await User.findOne({ _id: userId }).select("_id name username bio profileUrl email isPrivate postCount followersCount followingCount");
@@ -191,6 +192,11 @@ export const deleteUser = async (userId: string) => {
         { session }
       )
     ]);
+
+    const userStories = await Story.find({ userId }).session(session);
+    const storyIds = userStories.map(s => s._id);
+
+    await Story.deleteMany({ userId }).session(session);
 
     // 2️⃣ Delete all posts created by this user
     const userPosts = await Post.find({ userId }).session(session);

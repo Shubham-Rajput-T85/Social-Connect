@@ -35,6 +35,11 @@ const userSchema = new Schema<IUser>({
         required: false,
         default: 0
     },
+    storyCount: {
+        type: Number,
+        required: false,
+        default: 0
+    },
     followers: [{
         type: Schema.Types.ObjectId,
         ref: 'User'
