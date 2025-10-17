@@ -303,3 +303,12 @@ export const getMutualFollowers = async (currentUserId: string, profileUserId: s
 
   return mutualUsers; // Each object has _id, username, name, profileUrl, isPrivate
 };
+
+
+export const isFollowing = async (currentUserId: string, targetUserId: string): Promise<boolean> => {
+  return !!(await User.exists({ _id: currentUserId, following: targetUserId }));
+};
+
+export const isFollower = async (currentUserId: string, targetUserId: string): Promise<boolean> => {
+  return !!(await User.exists({ _id: currentUserId, followers: targetUserId }));
+};

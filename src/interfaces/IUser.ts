@@ -9,6 +9,7 @@ export default interface IUser extends Document {
     profileUrl?: string;
     bio: string;
     postCount: number;
+    storyCount: number;
 
     followers: Types.ObjectId[];       // references to other Users
     followersCount?: number;

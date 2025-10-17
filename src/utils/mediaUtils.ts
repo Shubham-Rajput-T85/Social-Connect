@@ -5,7 +5,7 @@ export const getMediaTypeFromUrl = (url: string): "image" | "video" | null => {
   
     if (!extension) return null;
   
-    const imageExtensions = ["jpg", "jpeg", "png", "gif", "webp"];
+    const imageExtensions = ["jpg", "jpeg", "png", "gif", "webp", "jfif"];
     const videoExtensions = ["mp4", "mov", "avi", "mkv", "webm"];
   
     if (imageExtensions.includes(extension)) return "image";

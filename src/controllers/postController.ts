@@ -44,7 +44,7 @@ export const getPostByUser: RequestHandler = async (req: any, res, next) => {
         console.log(isPrivate && !isUserAuthorized);
         if(isPrivate){
             if (!isUserAuthorized) {
-                return res.status(403).json({ message: "Not Authoirzed to see post" });
+                return res.status(403).json({ message: "Not Authorized to see post" });
             }
         }
 

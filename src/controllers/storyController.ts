@@ -1,5 +1,6 @@
 import { RequestHandler } from "express";
 import * as storyService from "../services/storyService";
+import * as followService from "../services/followService";
 
 export const addStory: RequestHandler = async (req: any, res, next) => {
   try {
@@ -27,10 +28,27 @@ export const addStory: RequestHandler = async (req: any, res, next) => {
   }
 };
 
-export const getStoriesFeed: RequestHandler = async (req: any, res, next) => {
+export const getStoriesFeedByUser: RequestHandler = async (req: any, res, next) => {
   try {
-    const userId = req.user.userId;
-    const stories = await storyService.getStoriesFeed(userId);
+    const userId = req.params.userId || req.user.userId;
+    const currentUserId = req.user.userId;
+    const isCurrentUser = userId === currentUserId;
+    if (!userId) {
+      return res.status(400).json({ success: false, alertType: "error", message: "Bad request, user missing" });
+    }
+    const isFollowing = await followService.isFollowing(currentUserId, userId);
+    const isFollower = await followService.isFollower(currentUserId, userId);
+    const isUserAuthorized = (userId === currentUserId) || isFollowing || isFollower;
+
+    if (!isUserAuthorized) {
+      return res.status(403).json({
+        success: false,
+        alertType: "error",
+        message: "Not Authorized to see story"
+      });
+    }
+    
+    const stories = await storyService.getStoriesFeed(userId, isCurrentUser);
     return res.status(200).json({
       success: true,
       alertType: "info",
