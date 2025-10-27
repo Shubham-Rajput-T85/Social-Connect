@@ -7,35 +7,33 @@ import User from "../models/user";
 // Add Story
 export const addStory = async (userId: string, caption: string, mediaUrl: string) => {
   const session = await mongoose.startSession();
-  session.startTransaction();
   try {
+    session.startTransaction();
+
     const mediaType = getMediaTypeFromUrl(mediaUrl);
     if (!mediaType) throw new AppError("Invalid media type", 400);
 
-    const story = await Story.create(
-      [
-        {
-          userId,
-          caption,
-          media: { url: mediaUrl, type: mediaType },
-        },
-      ],
-      { session }
-    );
+    const story = new Story({
+      userId,
+      caption,
+      media: { url: mediaUrl, type: mediaType },
+    });
 
-    const updatedUser = await User.findByIdAndUpdate(
+    await story.save({ session });
+
+    await User.findByIdAndUpdate(
       userId,
       { $inc: { storyCount: 1 } },
       { new: true, session }
     );
 
     await session.commitTransaction();
-    session.endSession();
-    return story[0];
+    return story;
   } catch (err) {
     await session.abortTransaction();
-    session.endSession();
     throw err;
+  } finally {
+    session.endSession();
   }
 };
 
@@ -51,8 +49,10 @@ export const getStoriesFeed = async (userId: string, isCurrentUser: boolean) => 
   if (isCurrentUser) {
     query = query.populate("views", "username profileUrl name");
   }
-
+  
   const stories = await query.exec();
+
+  await User.findByIdAndUpdate(userId, { storyCount: stories.length });
 
   return stories;
 };
@@ -64,7 +64,7 @@ export const viewStory = async (storyId: string, viewerId: string) => {
   
   // Prevent duplicate views and if creator views
   if ( 
-    // story.userId.toString() !== viewerId && 
+    story.userId.toString() !== viewerId && 
   !story.views.includes(viewerId as any)) {
     story.views.push(viewerId as any);
     story.viewsCount += 1;
@@ -76,32 +76,28 @@ export const viewStory = async (storyId: string, viewerId: string) => {
 // Delete a story
 export const deleteStory = async (storyId: string, currentUserId: string) => {
   const session = await mongoose.startSession();
-  session.startTransaction();
-  try{
-  const story = await Story.findById(storyId);
-  if (!story) throw new AppError("Story not found", 404);
+  try {
+    session.startTransaction();
 
-  if (story.userId.toString() !== currentUserId)
-    throw new AppError("Not authorized to delete story", 403);
+    const story = await Story.findById(storyId).session(session);
+    if (!story) throw new AppError("Story not found", 404);
+    if (story.userId.toString() !== currentUserId)
+      throw new AppError("Not authorized to delete story", 403);
 
-  await Story.findByIdAndDelete(storyId);
+    await Story.deleteOne({ _id: storyId }).session(session);
 
-  const updatedUser = await User.findById(currentUserId).session(session);
+    await User.findByIdAndUpdate(
+      currentUserId,
+      { $inc: { storyCount: -1 } },
+      { session }
+    );
 
-  if (!updatedUser) {
-      throw new AppError("User not found to update post count", 404);
-  }
-
-  // Decrement user's postCount
-  updatedUser.storyCount = Math.max(0, (updatedUser.storyCount || 0) - 1);
-  await updatedUser.save({ session });
-
-  return { message: "Story deleted successfully" };
-  }
-  catch (error) {
-    // Rollback if anything fails
+    await session.commitTransaction();
+    return { message: "Story deleted successfully" };
+  } catch (err) {
     await session.abortTransaction();
+    throw err;
+  } finally {
     session.endSession();
-    throw error;
   }
 };

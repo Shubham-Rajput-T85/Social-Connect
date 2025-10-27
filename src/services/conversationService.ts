@@ -7,7 +7,7 @@ import { isUserOnline } from "../utils/socketUtils";
  */
 export const getUserConversations = async (userId: string) => {
   const conversations = await Conversation.find({ participants: userId })
-    .populate("participants", "username profileUrl")
+    .populate("participants", "username profileUrl storyCount")
     .sort({ updatedAt: -1 })
     .lean();
 
