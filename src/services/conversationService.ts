@@ -1,5 +1,6 @@
 import Conversation from "../models/conversation";
 import Message from "../models/message";
+import Story from "../models/story";
 import { isUserOnline } from "../utils/socketUtils";
 
 /**
@@ -7,17 +8,19 @@ import { isUserOnline } from "../utils/socketUtils";
  */
 export const getUserConversations = async (userId: string) => {
   const conversations = await Conversation.find({ participants: userId })
-    .populate("participants", "username profileUrl storyCount")
+    .populate("participants", "username profileUrl storyCount name")
     .sort({ updatedAt: -1 })
     .lean();
 
-  console.log(conversations);
-  
   return Promise.all(
     conversations.map(async (conv: any) => {
-      const otherUser = conv.participants.find((p: any) => p._id.toString() !== userId);
+      const otherUser = conv.participants.find(
+        (p: any) => p._id.toString() !== userId
+      );
 
-      const lastMessage = await Message.findOne({ conversationId: conv._id })
+      const lastMessage = await Message.findOne({
+        conversationId: conv._id,
+      })
         .sort({ createdAt: -1 })
         .lean();
 
@@ -27,7 +30,20 @@ export const getUserConversations = async (userId: string) => {
         seenBy: { $ne: userId },
       });
 
-      const now = new Date();
+      // 🟢 New: Determine if all stories are seen by the current user
+      let allStoriesSeen = true;
+      if (otherUser?.storyCount > 0) {
+        const activeStories = await Story.find({
+          userId: otherUser._id,
+          expiresAt: { $gt: new Date() }, // not expired
+        }).select("views");
+
+        if (activeStories.length > 0) {
+          allStoriesSeen = activeStories.every((s) =>
+            s.views.some((v) => v.toString() === userId)
+          );
+        }
+      }
 
       return {
         conversationId: conv._id,
@@ -36,8 +52,9 @@ export const getUserConversations = async (userId: string) => {
           username: otherUser.username,
           name: otherUser.name,
           profileUrl: otherUser.profileUrl,
+          storyCount: otherUser.storyCount,
           online: isUserOnline(otherUser._id.toString()),
-          storyCount: otherUser.storyCount
+          allStoriesSeen, // ✅ added
         },
         lastMessage: lastMessage
           ? {

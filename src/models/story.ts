@@ -30,7 +30,7 @@ const storySchema = new Schema<IStory>(
       type: Date,
       required: true,
       default: () => new Date(Date.now() + 24 * 60 * 60 * 1000), // expires after 24hrs of creation
-      // default: () => new Date(Date.now() + 60 * 1000), // expires after min of creation
+      // default: () => new Date(Date.now() + 20 * 1000), // expires after min of creation
     },
     isArchived: {
       type: Boolean,
