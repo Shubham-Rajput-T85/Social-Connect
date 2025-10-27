@@ -30,6 +30,7 @@ const storySchema = new Schema<IStory>(
       type: Date,
       required: true,
       default: () => new Date(Date.now() + 24 * 60 * 60 * 1000), // expires after 24hrs of creation
+      // default: () => new Date(Date.now() + 60 * 1000), // expires after min of creation
     },
     isArchived: {
       type: Boolean,
@@ -40,7 +41,7 @@ const storySchema = new Schema<IStory>(
 );
 
 // // Auto-delete expired stories using TTL index
-// storySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+storySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 const Story = mongoose.model<IStory>("Story", storySchema);
 export default Story;
