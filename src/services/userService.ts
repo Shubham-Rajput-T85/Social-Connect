@@ -301,3 +301,53 @@ export const deleteUser = async (userId: string) => {
     };
   }
 };
+
+
+export const getUserCounts = async (userId: string) => {
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+
+  const result = await User.aggregate([
+    // Step 1: Match user
+    {
+      $match: { _id: userObjectId }
+    },
+
+    // Step 2: Lookup posts count
+    {
+      $lookup: {
+        from: "posts",
+        localField: "_id",
+        foreignField: "userId",
+        as: "posts"
+      }
+    },
+
+    // Step 3: Project counts
+    {
+      $project: {
+        _id: 0,
+        postCount: { $size: "$posts" },
+        followersCount: {
+          $cond: {
+            if: { $isArray: "$followers" },
+            then: { $size: "$followers" },
+            else: 0
+          }
+        },
+        followingCount: {
+          $cond: {
+            if: { $isArray: "$following" },
+            then: { $size: "$following" },
+            else: 0
+          }
+        }
+      }
+    }
+  ]);
+
+  return result[0] || {
+    postCount: 0,
+    followersCount: 0,
+    followingCount: 0
+  };
+};

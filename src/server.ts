@@ -8,7 +8,9 @@ import registerAuthSocket from "./sockets/authSocket";
 dotenv.config();
 
 const PORT = parseInt(process.env.PORT ?? "8080");
-const MONGO_URI = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0.blbzir6.mongodb.net/${process.env.DEFAULT_DB}?retryWrites=true&w=majority&appName=Cluster0`;
+// const MONGO_URI = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0.blbzir6.mongodb.net/${process.env.DEFAULT_DB}?retryWrites=true&w=majority&appName=Cluster0`;
+
+const MONGO_URI = `${process.env.MONGO_URI}`;
 
 // Create HTTP server
 const server = http.createServer(app);

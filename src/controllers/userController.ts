@@ -137,3 +137,23 @@ export const togglePrivateState: RequestHandler = async (req: any, res, next) =>
         next(new AppError("Error while toggle private state", 500));
     }
 }
+
+export const getUserCounts: RequestHandler = async (req: any, res, next) => {
+  try {
+    // const currentUserId = req.user?.userId;
+    const currentUserId = req.params.userId;
+    if (!currentUserId) {
+      return res.status(403).json({ message: "Not authenticated" });
+    }
+
+    const counts = await userService.getUserCounts(currentUserId);
+
+    return res.status(200).json({
+      success: true,
+      data: counts
+    });
+  } catch (error) {
+    console.error("get user counts error:", error);
+    next(new AppError("Error while fetching user counts", 500));
+  }
+};
